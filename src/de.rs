@@ -694,3 +694,20 @@ fn test_mixed() {
     let res: Vec<(u8, [u8; 2], u8)> = from_str(input).unwrap();
     assert_eq!(res, vec![(42, [9, 8], 7), (7, [5, 3], 2)]);
 }
+
+
+#[test]
+fn test_2dtuple() {
+
+    let input = "@RELATION Data
+
+@ATTRIBUTE a NUMERIC
+@ATTRIBUTE b NUMERIC
+
+@DATA
+42, 9
+7, 5";
+
+    let res: ((u8, u8), (u16, i32)) = from_str(input).unwrap();
+    assert_eq!(res, ((42, 9), (7, 5)));
+}
