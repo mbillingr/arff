@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Deserialize ARFF formatted text to a Rust data structure.
+
 use serde::de::{self, Deserialize, DeserializeSeed, Visitor, SeqAccess,
                 MapAccess, IntoDeserializer};
 
@@ -13,23 +15,7 @@ use super::error::{Error, Result};
 use super::parser::*;
 
 
-pub struct Deserializer<'de> {
-    parser: Parser<'de>,
-    header: Header,
-}
-
-impl<'de> Deserializer<'de> {
-    pub fn from_str(input: &'de str) -> Result<Self> {
-        let mut parser = Parser::new(input);
-        let header = parser.parse_header()?;
-
-        Ok(Deserializer {
-            parser,
-            header,
-        })
-    }
-}
-
+/// Deserialize an instance of type `T` from an ARFF formatted string.
 pub fn from_str<'a, T>(s: &'a str) -> Result<T>
     where
         T: Deserialize<'a>,
@@ -44,6 +30,24 @@ pub fn from_str<'a, T>(s: &'a str) -> Result<T>
         Ok(t)
     } else {
         Err(Error::TrailingCharacters)
+    }
+}
+
+/// Deserialize an ARFF data set into a Rust data structure.
+pub struct Deserializer<'de> {
+    parser: Parser<'de>,
+    header: Header,
+}
+
+impl<'de> Deserializer<'de> {
+    pub fn from_str(input: &'de str) -> Result<Self> {
+        let mut parser = Parser::new(input);
+        let header = parser.parse_header()?;
+
+        Ok(Deserializer {
+            parser,
+            header,
+        })
     }
 }
 
@@ -256,7 +260,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 }
 
 
-pub struct RowDeserializer<'de: 'a, 'a> {
+/// Deserialize an ARFF data row into a Rust data structure.
+struct RowDeserializer<'de: 'a, 'a> {
     parser: &'a mut Parser<'de>,
     header: &'a Header,
     current_column: usize,
@@ -582,7 +587,6 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataCols<'a, 'b, 'de> {
             T: DeserializeSeed<'de>,
     {
         let value = seed.deserialize(&mut *self.de)?;
-        //self.de.parser.parse_token(",")?;
         self.de.parser.parse_optional(',').unwrap();
         Ok(Some(value))
     }

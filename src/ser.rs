@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Serialize a Rust data structure to ARFF formatted text.
+
 use std::collections::BTreeSet;
 
 use serde::ser::{self, Serialize};
@@ -67,6 +69,7 @@ enum State {
 }
 
 
+/// Serialize an instance of type `T` into an ARFF formatted string.
 pub fn to_string<T>(value: &T) -> Result<String>
     where
         T: Serialize,
