@@ -38,12 +38,16 @@ pub struct Header {
 
 pub struct Parser<'a> {
     input: &'a str,
+    line: usize,
+    column: usize,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(input: &'a str) -> Self {
         Parser {
             input,
+            line: 1,
+            column: 0,
         }
     }
 
@@ -59,15 +63,32 @@ impl<'a> Parser<'a> {
         match self.peek_char() {
             Some(ch) => {
                 self.input = &self.input[ch.len_utf8()..];
+
+                if ch == '\n' {
+                    self.line += 1;
+                    self.column = 0;
+                }
+                else {
+                    self.column += 1;
+                }
+
                 Ok(ch)
             }
             None => Err(Error::Eof)
         }
     }
 
+    fn skip_until(&mut self, delimiter: char) -> Result<()> {
+        while self.peek_char() != Some(delimiter) {
+            self.next_char()?;
+        }
+        Ok(())
+    }
+
     fn skip_whitespace(&mut self, skip_newline: bool) -> Result<()> {
         loop {
             match (self.peek_char(), skip_newline) {
+                (Some('%'), _) => self.skip_until('\n')?,
                 (Some('\n'), true) => {}
                 (Some('\n'), false) => return Ok(()),
                 (Some(ch), _) if ch.is_whitespace() => {}
@@ -82,7 +103,11 @@ impl<'a> Parser<'a> {
     pub fn parse_token(&mut self, s: &'static str) -> Result<()> {
         for c in s.chars() {
             if self.next_char()?.to_ascii_uppercase() != c {
-                return Err(Error::Expected(s))
+                return Err(Error::Expected{
+                    line: self.line,
+                    column: self.column,
+                    what: s,
+                })
             }
         }
         self.skip_whitespace(false)?;
@@ -308,7 +333,11 @@ impl<'a> Parser<'a> {
                 }
                 true
             },
-            _ => return Err(Error::Expected("bool"))
+            _ => return Err(Error::Expected{
+                    line: self.line,
+                    column: self.column,
+                    what: "bool"
+            })
         };
         self.skip_whitespace(false)?;
         Ok(v)

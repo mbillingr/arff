@@ -19,7 +19,7 @@ pub enum Error {
     Syntax,
     TrailingCharacters,
 
-    Expected(&'static str),
+    Expected{line: usize, column: usize, what: &'static str},
     ExpectedUnsigned,
     NumericRange,
     FloatSyntax,
@@ -52,7 +52,7 @@ impl std::error::Error for Error {
             Error::Eof => "unexpected end of input",
             Error::Syntax => "syntax error",
             Error::TrailingCharacters => "unexpected characters at end of input",
-            Error::Expected(ref what) => what,
+            Error::Expected{ref what, ..} => what,
             Error::ExpectedUnsigned => "expected unsigned integer",
             Error::NumericRange => "value outside numeric range",
             Error::WrongDatasetType => "attempt to parse data set as a non-sequence type",
