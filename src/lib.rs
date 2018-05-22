@@ -4,10 +4,12 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+mod error;
+mod ser;
+mod de;
+mod parser;
+
+pub use error::{Error, Result};
+pub use ser::{to_string, Serializer};
+pub use de::{from_str, Deserializer};
+
