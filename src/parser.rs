@@ -85,10 +85,13 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn skip_whitespace(&mut self, skip_newline: bool) -> Result<()> {
+    pub fn skip_whitespace(&mut self, skip_newline: bool) -> Result<()> {
         loop {
             match (self.peek_char(), skip_newline) {
-                (Some('%'), _) => self.skip_until('\n')?,
+                (Some('%'), _) => {
+                    self.skip_until('\n')?;
+                    continue
+                },
                 (Some('\n'), true) => {}
                 (Some('\n'), false) => return Ok(()),
                 (Some(ch), _) if ch.is_whitespace() => {}

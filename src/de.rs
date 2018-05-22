@@ -29,6 +29,9 @@ pub fn from_str<'a, T>(s: &'a str) -> Result<T>
     let mut deserializer = Deserializer::from_str(s)?;
 
     let t = T::deserialize(&mut deserializer)?;
+
+    deserializer.parser.skip_whitespace(true)?;
+
     if deserializer.parser.is_eof() {
         Ok(t)
     } else {
@@ -695,7 +698,6 @@ fn test_mixed() {
     assert_eq!(res, vec![(42, [9, 8], 7), (7, [5, 3], 2)]);
 }
 
-
 #[test]
 fn test_2dtuple() {
 
@@ -711,3 +713,25 @@ fn test_2dtuple() {
     let res: ((u8, u8), (u16, i32)) = from_str(input).unwrap();
     assert_eq!(res, ((42, 9), (7, 5)));
 }
+
+#[test]
+fn test_comments() {
+
+    let input = "
+% This is a comment
+@RELATION Data
+
+@ATTRIBUTE a NUMERIC  % @DATA  % this would fail if not commented
+@ATTRIBUTE b NUMERIC  %This is also a comment
+
+@DATA
+42, 9  % comment
+7, 5   % comment
+
+% one final comment
+";
+
+    let res: [[u8; 2]; 2] = from_str(input).unwrap();
+    assert_eq!(res, [[42, 9], [7, 5]]);
+}
+
