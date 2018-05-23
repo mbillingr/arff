@@ -431,7 +431,7 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         where
             V: Visitor<'de>,
     {
-        if self.parser.match_optional('?')? {
+        if self.parser.match_optional(b'?')? {
             visitor.visit_none()
         } else {
             visitor.visit_some(self)
@@ -594,13 +594,13 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataCols<'a, 'b, 'de> {
         where
             T: DeserializeSeed<'de>,
     {
-        match self.de.parser.peek_char() {
-            None | Some('\n') => return Ok(None),
+        match self.de.parser.peek_u8() {
+            None | Some(b'\n') => return Ok(None),
             _ => {}
         }
 
         let value = seed.deserialize(&mut *self.de)?;
-        self.de.parser.match_optional(',')?;
+        self.de.parser.match_optional(b',')?;
         Ok(Some(value))
     }
 }
