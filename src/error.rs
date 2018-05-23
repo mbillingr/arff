@@ -11,26 +11,26 @@ use std::fmt::{self, Display};
 
 use serde::{ser, de};
 
+use parser::TextPos;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Error {
     Message(String),
 
-    NotOneField,
+    // Serializer
+    InconsistentType { row: usize, column: usize },
 
-    InconsistentDataType,
-
-    WrongDatasetType,
-
+    // Deserializer
     Eof,
-    Syntax,
-    TrailingCharacters,
-
-    Expected{line: usize, column: usize, what: &'static str},
-    ExpectedUnsigned,
-    NumericRange,
-    FloatSyntax,
+    Expected(TextPos, &'static str),
+    ExpectedSequenceType,
+    ExpectedUnsignedValue(TextPos),
+    ExpectedIntegerValue(TextPos),
+    ExpectedFloatValue(TextPos),
+    NumericRange(TextPos, i64, i64),
+    NumericOverflow(TextPos),
 }
 
 impl ser::Error for Error {
@@ -55,16 +55,15 @@ impl std::error::Error for Error {
     fn description(&self) -> &str {
         match *self {
             Error::Message(ref msg) => msg,
-            Error::NotOneField => "expected a struct with exactly one field",
-            Error::InconsistentDataType => "inconsistent data type",
+            Error::InconsistentType{..} => "inconsistent data type",
             Error::Eof => "unexpected end of input",
-            Error::Syntax => "syntax error",
-            Error::TrailingCharacters => "unexpected characters at end of input",
-            Error::Expected{ref what, ..} => what,
-            Error::ExpectedUnsigned => "expected unsigned integer",
-            Error::NumericRange => "value outside numeric range",
-            Error::WrongDatasetType => "attempt to parse data set as a non-sequence type",
-            Error::FloatSyntax => "invalid floating point number",
+            Error::Expected(_, ref what) => what,
+            Error::ExpectedUnsignedValue(_) => "expected unsigned integer value",
+            Error::ExpectedIntegerValue(_) => "expected integer value",
+            Error::NumericRange(_, _, _) => "value outside numeric range",
+            Error::NumericOverflow(_) => "value too large for u64",
+            Error::ExpectedSequenceType => "attempt to parse data set as a non-sequence type",
+            Error::ExpectedFloatValue(_) => "invalid floating point number",
         }
     }
 }

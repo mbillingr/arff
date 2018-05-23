@@ -24,6 +24,14 @@ struct Header {
 }
 
 impl Header {
+    fn new() -> Self {
+         Header {
+            name: "unnamed_data",
+            attr_names: Vec::new(),
+            attr_types: Vec::new(),
+        }
+    }
+
     fn to_string(&self) -> String {
         let mut s = format!("@RELATION {}\n\n", self.name);
 
@@ -69,14 +77,7 @@ pub fn to_string<T>(value: &T) -> Result<String>
     where
         T: Serialize,
 {
-    let mut serializer = Serializer {
-        header: Header {
-            name: "unnamed_data",
-            attr_names: Vec::new(),
-            attr_types: Vec::new(),
-        },
-        output: String::new(),
-    };
+    let mut serializer = Serializer::new();
     value.serialize(&mut serializer)?;
 
     let header = serializer.header.to_string();
@@ -87,6 +88,17 @@ pub fn to_string<T>(value: &T) -> Result<String>
 pub struct Serializer {
     header: Header,
     output: String,
+    current_row: usize,
+}
+
+impl Serializer {
+    fn new() -> Self {
+        Serializer {
+            header: Header::new(),
+            output: String::new(),
+            current_row: 0,
+        }
+    }
 }
 
 impl<'a> ser::Serializer for &'a mut Serializer {
@@ -258,6 +270,7 @@ impl<'a> ser::SerializeTuple for &'a mut Serializer {
             value.serialize(&mut ser)?;
         }
         self.output += "\n";
+        self.current_row += 1;
         Ok(())
     }
 
@@ -358,6 +371,7 @@ pub struct RowSerializer<'a> {
     output: &'a mut String,
     current_column: usize,
     current_key: Option<&'static str>,
+    row: usize,
 }
 
 impl<'a> RowSerializer<'a> {
@@ -367,10 +381,15 @@ impl<'a> RowSerializer<'a> {
             output: &mut ser.output,
             current_column: 0,
             current_key: None,
+            row: ser.current_row,
         }
     }
 
-    fn get_current_dtype(&mut self) -> Option<&mut DType> {
+    fn get_current_dtype(&mut self) -> Option<&DType> {
+        self.header.attr_types.get(self.current_column)
+    }
+
+    fn get_current_dtype_mut(&mut self) -> Option<&mut DType> {
         self.header.attr_types.get_mut(self.current_column)
     }
 
@@ -419,7 +438,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Nominal(["f", "t"].iter().cloned().collect())),
             Some(DType::Nominal(_)) => {}
-            Some(_) => return Err(Error::InconsistentDataType),
+            Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
         }
         *self.output += if v {"t"} else {"f"};
         Ok(())
@@ -441,7 +460,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
             Some(DType::Numeric) => {}
-            Some(_) => return Err(Error::InconsistentDataType),
+            Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
         }
         *self.output += &v.to_string();
         Ok(())
@@ -463,7 +482,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
             Some(DType::Numeric) => {}
-            Some(_) => return Err(Error::InconsistentDataType),
+            Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
         }
         *self.output += &v.to_string();
         Ok(())
@@ -477,7 +496,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
             Some(DType::Numeric) => {}
-            Some(_) => return Err(Error::InconsistentDataType),
+            Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
         }
         *self.output += &v.to_string();
         Ok(())
@@ -491,7 +510,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::String),
             Some(DType::String) => {}
-            Some(_) => return Err(Error::InconsistentDataType),
+            Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
         }
         *self.output += "'";
         *self.output += v;
@@ -526,13 +545,21 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         if self.get_current_dtype().is_none() {
             self.set_current_dtype(DType::Nominal(BTreeSet::new()));
         }
-        if let Some(DType::Nominal(variants)) = self.get_current_dtype() {
+
+        let err;
+        if let Some(DType::Nominal(variants)) = self.get_current_dtype_mut() {
             variants.insert(variant);
+            err = false;
         } else {
-            return Err(Error::InconsistentDataType)
+            err = true;
         }
-        *self.output += variant;
-        Ok(())
+
+        if err {
+            Err(Error::InconsistentType {row: self.row, column: self.current_column})
+        } else {
+            *self.output += variant;
+            Ok(())
+        }
     }
 
     fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<()>

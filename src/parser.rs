@@ -43,20 +43,34 @@ pub struct Header<'a> {
     pub attrs: Vec<Attribute<'a>>
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct TextPos {
+    line: usize,
+    column: usize,
+}
+
+impl TextPos {
+    pub fn new(line: usize, column: usize) -> Self {
+        TextPos { line, column }
+    }
+}
+
 
 pub struct Parser<'a> {
     input: &'a str,
-    line: usize,
-    column: usize,
+    pos: TextPos,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(input: &'a str) -> Self {
         Parser {
             input,
-            line: 1,
-            column: 0,
+            pos: TextPos {line: 1, column: 1}
         }
+    }
+
+    pub fn pos(&self) -> TextPos {
+        self.pos
     }
 
     pub fn is_eof(&self) -> bool {
@@ -73,11 +87,11 @@ impl<'a> Parser<'a> {
                 self.input = &self.input[ch.len_utf8()..];
 
                 if ch == '\n' {
-                    self.line += 1;
-                    self.column = 0;
+                    self.pos.line += 1;
+                    self.pos.column = 1;
                 }
                 else {
-                    self.column += 1;
+                    self.pos.column += 1;
                 }
 
                 Ok(ch)
@@ -111,21 +125,25 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_token(&mut self, s: &'static str) -> Result<()> {
+    pub fn match_eof(&mut self) -> Result<()> {
+        if self.is_eof() {
+            Ok(())
+        } else {
+            Err(Error::Expected(self.pos, "end of input"))
+        }
+    }
+
+    pub fn match_token(&mut self, s: &'static str) -> Result<()> {
         for c in s.chars() {
             if self.next_char()?.to_ascii_uppercase() != c {
-                return Err(Error::Expected{
-                    line: self.line,
-                    column: self.column,
-                    what: s,
-                })
+                return Err(Error::Expected(self.pos, s))
             }
         }
         self.skip_whitespace(false)?;
         Ok(())
     }
 
-    pub fn parse_optional(&mut self, c: char) -> Result<()> {
+    pub fn match_optional(&mut self, c: char) -> Result<()> {
         match self.peek_char() {
             Some(ch) if ch == c => {
                 self.next_char()?;
@@ -182,75 +200,75 @@ impl<'a> Parser<'a> {
     fn parse_type(&mut self) -> Result<DType<'a>> {
         match self.peek_char().map(|c|c.to_ascii_uppercase()) {
             Some('N') => {
-                self.parse_token("NUMERIC")?;
+                self.match_token("NUMERIC")?;
                 Ok(DType::Numeric)
             }
             Some('I') => {
-                self.parse_token("INTEGER")?;
+                self.match_token("INTEGER")?;
                 Ok(DType::Numeric)
             }
             Some('S') => {
-                self.parse_token("STRING")?;
+                self.match_token("STRING")?;
                 Ok(DType::String)
             }
             Some('R') => {
-                self.parse_token("E")?;
+                self.match_token("E")?;
                 match self.peek_char().map(|c|c.to_ascii_uppercase()) {
                     Some('A') => {
                         // REAL
-                        self.parse_token("AL")?;
+                        self.match_token("AL")?;
                         Ok(DType::Numeric)
                     }
                     Some('L') => {
                         // RELATIONAL
-                        self.parse_token("LATIONAL")?;
+                        self.match_token("LATIONAL")?;
                         unimplemented!()
                     }
-                    _ => Err(Error::Syntax)
+                    _ => Err(Error::Expected(self.pos, "`@NUMERIC`, `@INTEGER`, `@STRING`, `@REAL`, `@RELATIONAL`, `@DATE`, or `{<identifier list>}`"))
                 }
             }
             Some('D') => {
-                self.parse_token("DATE")?;
+                self.match_token("DATE")?;
                 unimplemented!();
             }
             Some('{') => {
                 let mut v = Vec::new();
-                self.parse_token("{")?;
+                self.match_token("{")?;
                 while self.peek_char() != Some('}') {
                     v.push(self.parse_string()?);
-                    self.parse_optional(',')?;
+                    self.match_optional(',')?;
                 }
-                self.parse_token("}")?;
+                self.match_token("}")?;
                 Ok(DType::Nominal(v))
             }
-            _ => Err(Error::Syntax)
+            _ => Err(Error::Expected(self.pos, "`@NUMERIC`, `@INTEGER`, `@STRING`, `@REAL`, `@RELATIONAL`, `@DATE`, or `{<identifier list>}`"))
         }
     }
 
     pub fn parse_header(&mut self) -> Result<Header<'a>> {
         self.skip_whitespace(true)?;
 
-        self.parse_token("@RELATION")?;
+        self.match_token("@RELATION")?;
 
         let name = self.parse_string()?;
 
         let mut attrs = Vec::new();
         loop {
             self.skip_whitespace(true)?;
-            self.parse_token("@")?;
+            self.match_token("@")?;
 
             match self.peek_char().map(|c|c.to_ascii_uppercase()) {
                 Some('A') => {
-                    self.parse_token("ATTRIBUTE")?;
+                    self.match_token("ATTRIBUTE")?;
                     let name = self.parse_string()?;
                     let dtype = self.parse_type()?;
                     attrs.push(Attribute{name, dtype});
                 }
                 Some('D') => {
-                    self.parse_token("DATA")?;
+                    self.match_token("DATA")?;
                     break
                 }
-                _ => return Err(Error::Syntax)
+                _ => return Err(Error::Expected(self.pos, "`@ATTRIBUTE <identifier> <type>` or `@DATA`"))
             }
         }
         self.skip_whitespace(true)?;
@@ -258,21 +276,27 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_newline(&mut self) -> Result<()> {
-        self.parse_token("\n")
+        self.match_token("\n")
     }
 
     pub fn parse_unsigned(&mut self) -> Result<u64> {
+        let pos = self.pos();
+
         let mut i = match self.next_char()? {
             ch @ '0' ... '9' => (ch as u8 - b'0') as u64,
             '+' => 0,
-            _ => return Err(Error::ExpectedUnsigned),
+            _ => return Err(Error::ExpectedUnsignedValue(pos)),
         };
 
         loop {
             match self.input.chars().next() {
                 Some(ch @ '0' ... '9') => {
                     self.input = &self.input[1..];
-                    i = i * 10 + (ch as u8 - b'0') as u64;
+                    i = i
+                        .checked_mul(10)
+                        .ok_or(Error::NumericOverflow(pos))?
+                        .checked_add((ch as u8 - b'0') as u64)
+                        .ok_or(Error::NumericOverflow(pos))?;
                 }
                 _ => {
                     self.skip_whitespace(false)?;
@@ -283,6 +307,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_signed(&mut self) -> Result<i64> {
+        let pos = self.pos();
         let sign = match self.peek_char() {
             Some('-') => {
                 self.next_char()?;
@@ -295,16 +320,19 @@ impl<'a> Parser<'a> {
             _ => false,
         };
 
-        let uval = self.parse_unsigned()?;
-
-        match (sign, uval) {
-            (false, 0...I64_MAX) => Ok(uval as i64),
-            (true, 0...I64_MINABS) => Ok(-(uval as i64)),
-            _ => Err(Error::NumericRange),
+        match (sign, self.parse_unsigned()) {
+            (_, Err(Error::ExpectedUnsignedValue(_))) => Err(Error::ExpectedIntegerValue(pos)),
+            (_, Err(e)) => Err(e),
+            (true, Ok(I64_MINABS)) => Ok(i64::MIN),
+            (false, Ok(uval @ 0...I64_MAX)) => Ok(uval as i64),
+            (true, Ok(uval @ 0...I64_MAX)) => Ok(-(uval as i64)),
+            _ => Err(Error::NumericRange(pos, i64::MIN, i64::MAX)),
         }
     }
 
     pub fn parse_float(&mut self) -> Result<f64> {
+        let pos = self.pos();
+
         let s = self.input;
         let mut n = 0;
         loop {
@@ -319,7 +347,7 @@ impl<'a> Parser<'a> {
         }
         match s[..n].parse() {
             Ok(v) => Ok(v),
-            Err(_) => Err(Error::FloatSyntax),
+            Err(_) => Err(Error::ExpectedFloatValue(pos)),
         }
     }
 
@@ -329,33 +357,29 @@ impl<'a> Parser<'a> {
             '1' => true,
             'F' => {
                 if let Some('A') = self.peek_char().map(|c|c.to_ascii_uppercase()) {
-                    self.parse_token("ALSE")?;
+                    self.match_token("ALSE")?;
                 }
                 false
             },
             'T' => {
                 if let Some('R') = self.peek_char().map(|c|c.to_ascii_uppercase()) {
-                    self.parse_token("RUE")?;
+                    self.match_token("RUE")?;
                 }
                 true
             },
             'N' => {
                 if let Some('O') = self.peek_char().map(|c|c.to_ascii_uppercase()) {
-                    self.parse_token("O")?;
+                    self.match_token("O")?;
                 }
                 false
             },
             'Y' => {
                 if let Some('E') = self.peek_char().map(|c|c.to_ascii_uppercase()) {
-                    self.parse_token("ES")?;
+                    self.match_token("ES")?;
                 }
                 true
             },
-            _ => return Err(Error::Expected{
-                    line: self.line,
-                    column: self.column,
-                    what: "bool"
-            })
+            _ => return Err(Error::Expected(self.pos, "bool"))
         };
         self.skip_whitespace(false)?;
         Ok(v)

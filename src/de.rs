@@ -26,11 +26,9 @@ pub fn from_str<'a, T>(s: &'a str) -> Result<T>
 
     deserializer.parser.skip_whitespace(true)?;
 
-    if deserializer.parser.is_eof() {
-        Ok(t)
-    } else {
-        Err(Error::TrailingCharacters)
-    }
+    deserializer.parser.match_eof()?;
+
+    Ok(t)
 }
 
 /// Deserialize an ARFF data set into a Rust data structure.
@@ -65,133 +63,133 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_i8<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_i16<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_i32<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_i64<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_u8<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_u16<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_u32<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_u64<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_f32<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_f64<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_str<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_string<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_unit_struct<V>(self, _name: &'static str, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
@@ -227,21 +225,21 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_struct<V>(self, _name: &'static str, _fields: &'static [&'static str], _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_enum<V>(self, _name: &'static str, _variants: &'static [&'static str], _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        Err(Error::WrongDatasetType)
+        Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_identifier<V>(self, _visitor: V) -> Result<V::Value>
@@ -268,10 +266,10 @@ struct RowDeserializer<'de: 'a, 'a> {
 }
 
 impl<'de, 'a> RowDeserializer<'de, 'a> {
-    fn new(parser: &'a mut Parser<'de>, header: &'a Header<'de>) -> Self {
+    fn new(de: &'a mut Deserializer<'de>) -> Self {
         RowDeserializer {
-            parser,
-            header,
+            parser: &mut de.parser,
+            header: &mut de.header,
             current_column: 0,
         }
     }
@@ -298,10 +296,11 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         where
             V: Visitor<'de>,
     {
+        let pos = self.parser.pos();
         let value = self.parser.parse_signed()?;
         match value {
             -128...127 => visitor.visit_i8(value as i8),
-            _ => Err(Error::NumericRange),
+            _ => Err(Error::NumericRange(pos, -128, 127)),
         }
     }
 
@@ -309,10 +308,11 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         where
             V: Visitor<'de>,
     {
+        let pos = self.parser.pos();
         let value = self.parser.parse_signed()?;
         match value {
             I16_MIN...I16_MAX => visitor.visit_i16(value as i16),
-            _ => Err(Error::NumericRange),
+            _ => Err(Error::NumericRange(pos, I16_MIN, I16_MAX)),
         }
     }
 
@@ -320,10 +320,11 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         where
             V: Visitor<'de>,
     {
+        let pos = self.parser.pos();
         let value = self.parser.parse_signed()?;
         match value {
             I32_MIN...I32_MAX => visitor.visit_i32(value as i32),
-            _ => Err(Error::NumericRange),
+            _ => Err(Error::NumericRange(pos, I32_MIN, I32_MAX)),
         }
     }
 
@@ -338,10 +339,11 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         where
             V: Visitor<'de>,
     {
+        let pos = self.parser.pos();
         let value = self.parser.parse_unsigned()?;
         match value {
             0...255 => visitor.visit_u8(value as u8),
-            _ => Err(Error::NumericRange),
+            _ => Err(Error::NumericRange(pos, 0, 255)),
         }
     }
 
@@ -349,10 +351,11 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         where
             V: Visitor<'de>,
     {
+        let pos = self.parser.pos();
         let value = self.parser.parse_unsigned()?;
         match value {
             0...U16_MAX => visitor.visit_u16(value as u16),
-            _ => Err(Error::NumericRange),
+            _ => Err(Error::NumericRange(pos, 0, U16_MAX as i64)),
         }
     }
 
@@ -360,10 +363,11 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         where
             V: Visitor<'de>,
     {
+        let pos = self.parser.pos();
         let value = self.parser.parse_unsigned()?;
         match value {
             0...U32_MAX => visitor.visit_u32(value as u32),
-            _ => Err(Error::NumericRange),
+            _ => Err(Error::NumericRange(pos, 0, U32_MAX as i64)),
         }
     }
 
@@ -530,7 +534,7 @@ impl<'de, 'a> SeqAccess<'de> for DataRows<'a, 'de> {
             Ok(None)
         } else {
             let value = {
-                let mut de = RowDeserializer::new(&mut self.de.parser, &self.de.header);
+                let mut de = RowDeserializer::new(&mut self.de);
                 Some(seed.deserialize(&mut de)?)
             };
             match self.de.parser.parse_newline() {
@@ -573,7 +577,7 @@ impl<'a, 'b, 'de> MapAccess<'de> for DataCols<'a, 'b, 'de> {
         let value = seed.deserialize(&mut *self.de)?;
         self.de.current_column += 1;
         if self.de.current_column < self.de.header.attrs.len() {
-            self.de.parser.parse_token(",")?;
+            self.de.parser.match_token(",")?;
         }
         Ok(value)
     }
@@ -587,7 +591,7 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataCols<'a, 'b, 'de> {
             T: DeserializeSeed<'de>,
     {
         let value = seed.deserialize(&mut *self.de)?;
-        self.de.parser.parse_optional(',').unwrap();
+        self.de.parser.match_optional(',').unwrap();
         Ok(Some(value))
     }
 }
@@ -747,3 +751,23 @@ fn test_comments() {
     assert_eq!(res, [[42, 9], [7, 5]]);
 }
 
+#[test]
+fn test_ranges() {
+    use std::{i64, u64};
+    use parser::TextPos;
+    assert_eq!(from_str("@RELATION x @DATA 0, 255"), Ok([[0u8, 255]]));
+    assert_eq!(from_str::<[[u8;1];1]>("@RELATION x @DATA  -1"), Err(Error::ExpectedUnsignedValue(TextPos::new(1, 20))));
+    assert_eq!(from_str::<[[u8;1];1]>("@RELATION x @DATA 256"), Err(Error::NumericRange(TextPos::new(1, 19), 0, 255)));
+
+    assert_eq!(from_str("@RELATION x @DATA -128, 127"), Ok([[-128i8, 127]]));
+    assert_eq!(from_str::<[[i8;1];1]>("@RELATION x @DATA -129"), Err(Error::NumericRange(TextPos::new(1, 19), -128, 127)));
+    assert_eq!(from_str::<[[i8;1];1]>("@RELATION x @DATA  128"), Err(Error::NumericRange(TextPos::new(1, 20), -128, 127)));
+
+    assert_eq!(from_str("@RELATION x @DATA -9223372036854775808, 9223372036854775807"), Ok([[i64::MIN, i64::MAX]]));
+    assert_eq!(from_str::<[[i64;1];1]>("@RELATION x @DATA -9223372036854775809"), Err(Error::NumericRange(TextPos::new(1, 19), i64::MIN, i64::MAX)));
+    assert_eq!(from_str::<[[i64;1];1]>("@RELATION x @DATA  9223372036854775808"), Err(Error::NumericRange(TextPos::new(1, 20), i64::MIN, i64::MAX)));
+
+    assert_eq!(from_str("@RELATION x @DATA 0, 18446744073709551615"), Ok([[u64::MIN, u64::MAX]]));
+    assert_eq!(from_str::<[[u64;1];1]>("@RELATION x @DATA                   -1"), Err(Error::ExpectedUnsignedValue(TextPos::new(1, 37))));
+    assert_eq!(from_str::<[[u64;1];1]>("@RELATION x @DATA 18446744073709551616"), Err(Error::NumericOverflow(TextPos::new(1, 19))));
+}
