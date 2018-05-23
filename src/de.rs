@@ -594,8 +594,13 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataCols<'a, 'b, 'de> {
         where
             T: DeserializeSeed<'de>,
     {
+        match self.de.parser.peek_char() {
+            None | Some('\n') => return Ok(None),
+            _ => {}
+        }
+
         let value = seed.deserialize(&mut *self.de)?;
-        self.de.parser.match_optional(',').unwrap();
+        self.de.parser.match_optional(',')?;
         Ok(Some(value))
     }
 }
@@ -779,4 +784,22 @@ fn test_ranges() {
 #[test]
 fn test_missing() {
     assert_eq!(from_str("@RELATION x @DATA 1 \n ? \n 3"), Ok([[Some(1)], [None], [Some(3)]]));
+}
+
+#[test]
+fn test_vecseq() {
+
+    let input = "@RELATION Data
+
+@ATTRIBUTE a NUMERIC
+@ATTRIBUTE b NUMERIC
+@ATTRIBUTE c NUMERIC
+@ATTRIBUTE d NUMERIC
+
+@DATA
+42, 9, 8, 7
+7, 5, 3, 2";
+
+    let res: Vec<Vec<u8>> = from_str(input).unwrap();
+    assert_eq!(res, vec![vec![42, 9, 8, 7], vec![7, 5, 3, 2]]);
 }

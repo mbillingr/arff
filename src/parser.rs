@@ -77,7 +77,7 @@ impl<'a> Parser<'a> {
         self.input.is_empty()
     }
 
-    fn peek_char(&mut self) -> Option<char> {
+    pub fn peek_char(&mut self) -> Option<char> {
         self.input.chars().next()
     }
 
@@ -292,6 +292,7 @@ impl<'a> Parser<'a> {
             match self.input.chars().next() {
                 Some(ch @ '0' ... '9') => {
                     self.input = &self.input[1..];
+                    self.pos.column += 1;
                     i = i
                         .checked_mul(10)
                         .ok_or(Error::NumericOverflow(pos))?
