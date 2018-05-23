@@ -473,11 +473,11 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         self.deserialize_seq(visitor)
     }
 
-    fn deserialize_tuple_struct<V>(self, _name: &'static str, _len: usize, _visitor: V) -> Result<V::Value>
+    fn deserialize_tuple_struct<V>(self, _name: &'static str, _len: usize, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        unimplemented!()
+        self.deserialize_seq(visitor)
     }
 
     fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
@@ -802,4 +802,29 @@ fn test_vecseq() {
 
     let res: Vec<Vec<u8>> = from_str(input).unwrap();
     assert_eq!(res, vec![vec![42, 9, 8, 7], vec![7, 5, 3, 2]]);
+}
+
+#[test]
+fn test_2d_and_label() {
+
+    let input = "@RELATION Data
+
+@ATTRIBUTE a NUMERIC
+@ATTRIBUTE b NUMERIC
+@ATTRIBUTE c NUMERIC
+@ATTRIBUTE d NUMERIC
+@ATTRIBUTE l STRING
+
+@DATA
+1, 2, 3, 4, 'a'
+11, 12, 21, 22, 'b'";
+
+    #[derive(Debug, PartialEq, Deserialize)]
+    struct DataRow([[u8; 2]; 2], String);
+
+    type Data = Vec<DataRow>;
+
+    let res: Data = from_str(input).unwrap();
+    assert_eq!(res, vec![DataRow([[1, 2], [3, 4]], "a".to_owned()),
+                         DataRow([[11, 12], [21, 22]], "b".to_owned())]);
 }
