@@ -63,12 +63,6 @@ impl DType {
     }
 }
 
-enum State {
-    Init,
-    Data,
-}
-
-
 /// Serialize an instance of type `T` into an ARFF formatted string.
 pub fn to_string<T>(value: &T) -> Result<String>
     where
@@ -106,59 +100,59 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     type SerializeStruct = Self;
     type SerializeStructVariant = Self;
 
-    fn serialize_bool(self, v: bool) -> Result<()> {
+    fn serialize_bool(self, _: bool) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_i8(self, v: i8) -> Result<()> {
+    fn serialize_i8(self, _: i8) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_i16(self, v: i16) -> Result<()> {
+    fn serialize_i16(self, _: i16) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_i32(self, v: i32) -> Result<()> {
+    fn serialize_i32(self, _: i32) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_i64(self, v: i64) -> Result<()> {
+    fn serialize_i64(self, _: i64) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_u8(self, v: u8) -> Result<()> {
+    fn serialize_u8(self, _: u8) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_u16(self, v: u16) -> Result<()> {
+    fn serialize_u16(self, _: u16) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_u32(self, v: u32) -> Result<()> {
+    fn serialize_u32(self, _: u32) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_u64(self, v: u64) -> Result<()> {
+    fn serialize_u64(self, _: u64) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_f32(self, v: f32) -> Result<()> {
+    fn serialize_f32(self, _: f32) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_f64(self, v: f64) -> Result<()> {
+    fn serialize_f64(self, _: f64) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_char(self, _v: char) -> Result<()> {
+    fn serialize_char(self, _: char) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_str(self, v: &str) -> Result<()> {
+    fn serialize_str(self, _: &str) -> Result<()> {
         unimplemented!()
     }
 
-    fn serialize_bytes(self, _v: &[u8]) -> Result<()> {
+    fn serialize_bytes(self, _: &[u8]) -> Result<()> {
         unimplemented!()
     }
 
@@ -181,7 +175,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         unimplemented!()
     }
 
-    fn serialize_unit_variant(self, _name: &'static str, _variant_index: u32, variant: &'static str) -> Result<()> {
+    fn serialize_unit_variant(self, _name: &'static str, _variant_index: u32, _variant: &'static str) -> Result<()> {
         unimplemented!()
     }
 
@@ -220,7 +214,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         unimplemented!()
     }
 
-    fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
         unimplemented!()
     }
 
@@ -330,7 +324,7 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
+    fn serialize_field<T>(&mut self, _key: &'static str, _value: &T) -> Result<()>
         where
             T: ?Sized + Serialize
     {
@@ -540,7 +534,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         Ok(())
     }
 
-    fn serialize_newtype_struct<T>(self, name: &'static str, value: &T) -> Result<()>
+    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<()>
         where
             T: ?Sized + Serialize,
     {
@@ -574,7 +568,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         unimplemented!()
     }
 
-    fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
         Ok(self)
     }
 
@@ -587,7 +581,7 @@ impl<'a, 'b> ser::SerializeSeq for &'b mut RowSerializer<'a> {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_element<T>(&mut self, value: &T) -> Result<()>
+    fn serialize_element<T>(&mut self, _value: &T) -> Result<()>
         where
             T: ?Sized + Serialize
     {
