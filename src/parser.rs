@@ -24,23 +24,23 @@ pub const I64_MINABS: u64 = I64_MAX + 1;
 
 
 #[derive(Debug)]
-pub enum DType {
+pub enum DType<'a> {
     Numeric,
     String,
     //Date(String),
-    Nominal(Vec<String>),
+    Nominal(Vec<&'a str>),
 }
 
 #[derive(Debug)]
-pub struct Attribute {
-    pub name: String,
-    pub dtype: DType,
+pub struct Attribute<'a> {
+    pub name: &'a str,
+    pub dtype: DType<'a>,
 }
 
 #[derive(Debug)]
-pub struct Header {
-    pub name: String,
-    pub attrs: Vec<Attribute>
+pub struct Header<'a> {
+    pub name: &'a str,
+    pub attrs: Vec<Attribute<'a>>
 }
 
 
@@ -136,7 +136,7 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    pub fn parse_string(&mut self) -> Result<String> {
+    pub fn parse_string(&mut self) -> Result<&'a str> {
         match self.peek_char() {
             None => Err(Error::Eof),
             Some('\'') | Some('\"') => self.parse_quoted_string(),
@@ -144,39 +144,42 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_quoted_string(&mut self) -> Result<String> {
+    fn parse_quoted_string(&mut self) -> Result<&'a str> {
         let delimiter = self.next_char()?;
-        let mut s = String::new();
+        let start = self.input;
+        let mut n_bytes = 0;
         loop {
             let ch = self.next_char()?;
 
             if ch == delimiter {
                 self.skip_whitespace(false)?;
-                return Ok(s)
+                return Ok(&start[..n_bytes])
             } else {
-                s.push(ch)
+                n_bytes += ch.len_utf8();
             }
         }
     }
 
-    fn parse_unquoted_string(&mut self) -> Result<String> {
-        let mut s = String::new();
+    fn parse_unquoted_string(&mut self) -> Result<&'a str> {
+        let start = self.input;
+        let mut n_bytes = 0;
         loop {
             match self.peek_char() {
-                None => return Ok(s),
+                None => return Ok(&start[..n_bytes]),
                 Some(ch) => {
                     if ch.is_whitespace() || ch == ',' || ch == '{' || ch == '}' {
                         self.skip_whitespace(false)?;
-                        return Ok(s)
+                        return Ok(&start[..n_bytes])
                     } else {
-                        s.push(self.next_char()?)
+                        self.next_char()?;
+                        n_bytes += ch.len_utf8();
                     }
                 }
             }
         }
     }
 
-    fn parse_type(&mut self) -> Result<DType> {
+    fn parse_type(&mut self) -> Result<DType<'a>> {
         match self.peek_char().map(|c|c.to_ascii_uppercase()) {
             Some('N') => {
                 self.parse_token("NUMERIC")?;
@@ -224,7 +227,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_header(&mut self) -> Result<Header> {
+    pub fn parse_header(&mut self) -> Result<Header<'a>> {
         self.skip_whitespace(true)?;
 
         self.parse_token("@RELATION")?;
@@ -302,15 +305,19 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_float(&mut self) -> Result<f64> {
-        let mut s = String::new();
+        let s = self.input;
+        let mut n = 0;
         loop {
             match self.peek_char() {
                 Some('+') | Some('-') | Some('.') | Some('e') | Some('E') |
-                Some('0'...'9') => s.push(self.next_char()?),
+                Some('0'...'9') => {
+                    self.next_char()?;
+                    n += 1;
+                },
                 _ => break,
             }
         }
-        match s.parse() {
+        match s[..n].parse() {
             Ok(v) => Ok(v),
             Err(_) => Err(Error::FloatSyntax),
         }

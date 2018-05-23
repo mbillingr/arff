@@ -36,7 +36,7 @@ pub fn from_str<'a, T>(s: &'a str) -> Result<T>
 /// Deserialize an ARFF data set into a Rust data structure.
 pub struct Deserializer<'de> {
     parser: Parser<'de>,
-    header: Header,
+    header: Header<'de>,
 }
 
 impl<'de> Deserializer<'de> {
@@ -263,12 +263,12 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 /// Deserialize an ARFF data row into a Rust data structure.
 struct RowDeserializer<'de: 'a, 'a> {
     parser: &'a mut Parser<'de>,
-    header: &'a Header,
+    header: &'a Header<'de>,
     current_column: usize,
 }
 
 impl<'de, 'a> RowDeserializer<'de, 'a> {
-    fn new(parser: &'a mut Parser<'de>, header: &'a Header) -> Self {
+    fn new(parser: &'a mut Parser<'de>, header: &'a Header<'de>) -> Self {
         RowDeserializer {
             parser,
             header,
