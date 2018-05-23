@@ -143,15 +143,15 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    pub fn match_optional(&mut self, c: char) -> Result<()> {
+    pub fn match_optional(&mut self, c: char) -> Result<bool> {
         match self.peek_char() {
             Some(ch) if ch == c => {
                 self.next_char()?;
                 self.skip_whitespace(false)?;
+                Ok(true)
             }
-            _ => {}
+            _ => Ok(false)
         }
-        Ok(())
     }
 
     pub fn parse_string(&mut self) -> Result<&'a str> {

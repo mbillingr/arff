@@ -427,11 +427,15 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         unimplemented!()
     }
 
-    fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        unimplemented!()
+        if self.parser.match_optional('?')? {
+            visitor.visit_none()
+        } else {
+            visitor.visit_some(self)
+        }
     }
 
     fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>
@@ -770,4 +774,9 @@ fn test_ranges() {
     assert_eq!(from_str("@RELATION x @DATA 0, 18446744073709551615"), Ok([[u64::MIN, u64::MAX]]));
     assert_eq!(from_str::<[[u64;1];1]>("@RELATION x @DATA                   -1"), Err(Error::ExpectedUnsignedValue(TextPos::new(1, 37))));
     assert_eq!(from_str::<[[u64;1];1]>("@RELATION x @DATA 18446744073709551616"), Err(Error::NumericOverflow(TextPos::new(1, 19))));
+}
+
+#[test]
+fn test_missing() {
+    assert_eq!(from_str("@RELATION x @DATA 1 \n ? \n 3"), Ok([[Some(1)], [None], [Some(3)]]));
 }

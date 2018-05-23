@@ -523,14 +523,15 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     }
 
     fn serialize_none(self) -> Result<()> {
-        unimplemented!()
+        *self.output += "?";
+        Ok(())
     }
 
-    fn serialize_some<T>(self, _value: &T) -> Result<()>
+    fn serialize_some<T>(self, value: &T) -> Result<()>
         where
             T: ?Sized + Serialize,
     {
-        unimplemented!()
+        value.serialize(self)
     }
 
     fn serialize_unit(self) -> Result<()> {
@@ -962,4 +963,10 @@ fn test_2dtuple() {
 
     let output = to_string(&data).unwrap();
     assert_eq!(output, expected);
+}
+
+#[test]
+fn test_missing() {
+    assert_eq!(to_string(&[[Some(1)], [None], [Some(3)]]).unwrap(),
+               "@RELATION unnamed_data\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n?\n3\n");
 }
