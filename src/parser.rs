@@ -7,6 +7,7 @@
 // except according to those terms.
 
 use std::{i16, i32, i64, u8, u16, u32, u64, f64};
+use std::slice;
 use std::str;
 
 use super::error::{Error, Result};
@@ -25,23 +26,23 @@ pub const I64_MINABS: u64 = I64_MAX + 1;
 
 
 #[derive(Debug)]
-pub enum DType<'a> {
+pub enum DType {
     Numeric,
     String,
     //Date(String),
-    Nominal(Vec<&'a str>),
+    Nominal(Vec<String>),
 }
 
 #[derive(Debug)]
-pub struct Attribute<'a> {
-    pub name: &'a str,
-    pub dtype: DType<'a>,
+pub struct Attribute {
+    pub name: String,
+    pub dtype: DType,
 }
 
 #[derive(Debug)]
-pub struct Header<'a> {
-    pub name: &'a str,
-    pub attrs: Vec<Attribute<'a>>
+pub struct Header {
+    pub name: String,
+    pub attrs: Vec<Attribute>
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -56,19 +57,19 @@ impl TextPos {
     }
 }
 
-
 pub struct Parser<'a> {
-    input: &'a [u8],
+    input: str::Bytes<'a>,
     current_char: Option<u8>,
     pos: TextPos,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(input: &'a str) -> Self {
-        let input = input.as_bytes();
+        let mut input = input.bytes();
+        let current_char = input.next();
         Parser {
             input,
-            current_char: input.first().cloned(),
+            current_char,
             pos: TextPos {line: 1, column: 1}
         }
     }
@@ -78,15 +79,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn is_eof(&self) -> bool {
-        self.input.is_empty()
-    }
-
-    fn update_current(&mut self) {
-        if self.input.is_empty() {
-            self.current_char = None
-        } else {
-            self.current_char = Some(self.input[0])
-        }
+        self.current_char.is_none()
     }
 
     pub fn peek_u8(&self) -> Option<u8> {
@@ -96,8 +89,7 @@ impl<'a> Parser<'a> {
     fn next_u8(&mut self) -> Result<u8> {
         match self.peek_u8() {
             Some(ch) => {
-                self.input = &self.input[1..];
-                self.update_current();
+                self.current_char = self.input.next();
 
                 if ch == b'\n' {
                     self.pos.line += 1;
@@ -135,9 +127,8 @@ impl<'a> Parser<'a> {
                 (None, _) => return Ok(()),
             }
 
-            self.input = &self.input[1..];
+            self.current_char = self.input.next();
             self.pos.column += 1;
-            self.update_current();
         }
     }
 
@@ -170,7 +161,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_string(&mut self) -> Result<&'a str> {
+    pub fn parse_string(&mut self) -> Result<String> {
         match self.peek_u8() {
             None => Err(Error::Eof),
             Some(b'\'') | Some(b'\"') => self.parse_quoted_string(),
@@ -178,42 +169,40 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_quoted_string(&mut self) -> Result<&'a str> {
+    fn parse_quoted_string(&mut self) -> Result<String> {
         let delimiter = self.next_u8()?;
-        let start = self.input;
-        let mut n_bytes = 0;
+        let mut s = Vec::new();
         loop {
             let ch = self.next_u8()?;
 
             if ch == delimiter {
                 self.skip_whitespace(false)?;
-                return Ok(str::from_utf8(&start[..n_bytes]).unwrap())
+                return Ok(String::from_utf8(s).unwrap())
             } else {
-                n_bytes += 1;
+                s.push(ch);
             }
         }
     }
 
-    fn parse_unquoted_string(&mut self) -> Result<&'a str> {
-        let start = self.input;
-        let mut n_bytes = 0;
+    fn parse_unquoted_string(&mut self) -> Result<String> {
+        let mut s = Vec::new();
         loop {
             match self.peek_u8() {
-                None => return Ok(str::from_utf8(&start[..n_bytes]).unwrap()),
+                None => return Ok(String::from_utf8(s).unwrap()),
                 Some(ch) => {
                     if ch == b' ' || ch == b'\t' || ch == b'\n' || ch == b',' || ch == b'{' || ch == b'}' {
                         self.skip_whitespace(false)?;
-                        return Ok(str::from_utf8(&start[..n_bytes]).unwrap())
+                        return Ok(String::from_utf8(s).unwrap())
                     } else {
                         self.next_u8()?;
-                        n_bytes += 1;
+                        s.push(ch);
                     }
                 }
             }
         }
     }
 
-    fn parse_type(&mut self) -> Result<DType<'a>> {
+    fn parse_type(&mut self) -> Result<DType> {
         match self.peek_u8().map(|c|c.to_ascii_uppercase()) {
             Some(b'N') => {
                 self.match_token("NUMERIC")?;
@@ -261,7 +250,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_header(&mut self) -> Result<Header<'a>> {
+    pub fn parse_header(&mut self) -> Result<Header> {
         self.skip_whitespace(true)?;
 
         self.match_token("@RELATION")?;
@@ -305,9 +294,9 @@ impl<'a> Parser<'a> {
         };
 
         loop {
-            match self.input.first() {
+            match self.current_char {
                 Some(ch @ b'0' ... b'9') => {
-                    self.input = &self.input[1..];
+                    self.current_char = self.input.next();
                     self.pos.column += 1;
                     i = i
                         .checked_mul(10)
@@ -316,7 +305,6 @@ impl<'a> Parser<'a> {
                         .ok_or(Error::NumericOverflow(pos))?;
                 }
                 _ => {
-                    self.update_current();
                     self.skip_whitespace(false)?;
                     return Ok(i)
                 }
@@ -351,19 +339,18 @@ impl<'a> Parser<'a> {
     pub fn parse_float(&mut self) -> Result<f64> {
         let pos = self.pos();
 
-        let s = self.input;
-        let mut n = 0;
+        let mut s = Vec::new();
         loop {
             match self.peek_u8() {
-                Some(b'+') | Some(b'-') | Some(b'.') | Some(b'e') | Some(b'E') |
-                Some(b'0'...b'9') => {
+                Some(ch@b'+') | Some(ch@b'-') | Some(ch@b'.') | Some(ch@b'e') | Some(ch@b'E') |
+                Some(ch@b'0'...b'9') => {
                     self.next_u8()?;
-                    n += 1;
+                    s.push(ch);
                 },
                 _ => break,
             }
         }
-        match str::from_utf8(&s[..n]).unwrap().parse() {
+        match String::from_utf8(s).unwrap().parse() {
             Ok(v) => Ok(v),
             Err(_) => Err(Error::ExpectedFloatValue(pos)),
         }
