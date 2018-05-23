@@ -212,7 +212,7 @@ impl<'a> Parser<'a> {
                 Ok(DType::String)
             }
             Some('R') => {
-                self.match_token("E")?;
+                self.match_token("RE")?;
                 match self.peek_char().map(|c|c.to_ascii_uppercase()) {
                     Some('A') => {
                         // REAL
@@ -352,36 +352,47 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_bool(&mut self) -> Result<bool> {
-        let v = match self.next_char()?.to_ascii_uppercase() {
-            '0' => false,
-            '1' => true,
+        let pos = self.pos();
+        let result = match self.next_char()?.to_ascii_uppercase() {
+            '0' => Ok(false),
+            '1' => Ok(true),
             'F' => {
                 if let Some('A') = self.peek_char().map(|c|c.to_ascii_uppercase()) {
-                    self.match_token("ALSE")?;
+                    self.match_token("ALSE").map(|_|false)
+                } else {
+                    Ok(false)
                 }
-                false
             },
             'T' => {
                 if let Some('R') = self.peek_char().map(|c|c.to_ascii_uppercase()) {
-                    self.match_token("RUE")?;
+                    self.match_token("RUE").map(|_|true)
+                } else {
+                    Ok(true)
                 }
-                true
             },
             'N' => {
                 if let Some('O') = self.peek_char().map(|c|c.to_ascii_uppercase()) {
-                    self.match_token("O")?;
+                    self.match_token("O").map(|_|false)
+                } else {
+                    Ok(false)
                 }
-                false
             },
             'Y' => {
                 if let Some('E') = self.peek_char().map(|c|c.to_ascii_uppercase()) {
-                    self.match_token("ES")?;
+                    self.match_token("ES").map(|_|true)
+                } else {
+                    Ok(true)
                 }
-                true
             },
-            _ => return Err(Error::Expected(self.pos, "bool"))
+            _ => return Err(Error::Expected(pos, ""))
         };
+
         self.skip_whitespace(false)?;
-        Ok(v)
+
+        match result {
+            Ok(v) => Ok(v),
+            Err(Error::Expected(_, _)) => Err(Error::Expected(pos, "`1`, `0`, `T`, `F`, `Y`, `N`, `TRUE`, `FALSE`, `YES`, or `NO`")),
+            Err(e) => Err(e),
+        }
     }
 }
