@@ -4,9 +4,10 @@ ARFF file format serializer and deserializer
 
 An ARFF (Attribute-Relation File Format) file is an ASCII text file
 that describes a list of instances sharing a set of attributes. Its
-main use is in data science to store tabular data: each row is an
-instance and each column is an attribute. In addition it contains
-meta-data such as attribute (column) names, data types, and comments.
+main use is in data science to store tabular data: rows are 
+instances and columns are attributes. Meta data such as attribute 
+(column) names, data types, and comments are included in the file
+format.
 
 ## Usage
 - ARFF is used as an input file format by the machine-learning tool Weka.
@@ -20,6 +21,13 @@ data needs to be represented as a sequence of rows, and a row can be
 either a `struct` with named columns or a sequence with static length.
 
 ## Example
+
+This crate is not yet published at [crates.io](https://crates.io/), so 
+your `Cargo.toml` needs to link to the repository directly.
+```toml
+[dependencies]
+arff = { git = "https://github.com/mbillingr/arff" }
+```
 
 ```rust
 extern crate arff;
@@ -50,3 +58,21 @@ fn main() {
     println!("{:?}", unnamed_data);
 }
 ```
+
+## License
+
+The ARFF crate is licensed under either of
+
+ * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
+   http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or
+   http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally 
+submitted for inclusion in the ARFF crate by you, as defined in the 
+Apache-2.0 license, shall be dual licensed as above, without any 
+additional terms or conditions.
