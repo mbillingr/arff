@@ -8,6 +8,7 @@
 
 //! Serialize a Rust data structure to ARFF formatted text.
 
+use std::borrow::Cow;
 use std::collections::BTreeSet;
 
 use serde::ser::{self, Serialize};
@@ -18,7 +19,7 @@ use super::error::{Error, Result};
 #[derive(Debug)]
 struct Header {
     name: &'static str,
-    attr_names: Vec<String>,
+    attr_names: Vec<Cow<'static, str>>,
     attr_types: Vec<DType>,
 }
 
@@ -389,15 +390,15 @@ impl<'a> RowSerializer<'a> {
         self.header.attr_names.get(self.current_column).map(|s|&s[..])
     }
 
-    fn set_current_name(&mut self, n: &str) {
+    fn set_current_name(&mut self, n: Cow<'static, str>) {
         if self.current_column > self.header.attr_names.len() {
             panic!("col_idx is too far ahead")
         }
 
         if self.current_column == self.header.attr_names.len() {
-            self.header.attr_names.push(n.to_owned());
+            self.header.attr_names.push(n);
         } else {
-            self.header.attr_names[self.current_column] = n.to_owned();
+            self.header.attr_names[self.current_column] = n;
         }
     }
 }
@@ -606,7 +607,7 @@ impl<'a, 'b> ser::SerializeTuple for &'b mut RowSerializer<'a> {
                 Some(key) => key.to_owned() + &(self.current_column + 1).to_string(),
                 None => "col".to_owned() + &(self.current_column + 1).to_string(),
             };
-            self.set_current_name(&name);
+            self.set_current_name(name.into());
         }
 
         if self.current_column > 0 && ! self.output.ends_with(", ") {
@@ -696,7 +697,7 @@ impl<'a, 'b> ser::SerializeStruct for &'b mut RowSerializer<'a> {
         let last_idx = self.current_column;
         value.serialize(&mut **self)?;
         if last_idx == self.current_column {
-            self.header.attr_names.push(key.to_owned());
+            self.header.attr_names.push(key.into());
             self.current_column += 1;
         }
         Ok(())
