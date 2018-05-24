@@ -7,7 +7,6 @@
 // except according to those terms.
 
 use std::{i16, i32, i64, u8, u16, u32, u64, f64};
-use std::slice;
 use std::str;
 
 use super::error::{Error, Result};
@@ -25,18 +24,18 @@ pub const I64_MAX: u64 = i64::MAX as u64;
 pub const I64_MINABS: u64 = I64_MAX + 1;
 
 
-#[derive(Debug)]
+/*#[derive(Debug)]
 pub enum DType {
     Numeric,
     String,
     //Date(String),
     Nominal(Vec<String>),
-}
+}*/
 
 #[derive(Debug)]
 pub struct Attribute {
     pub name: String,
-    pub dtype: DType,
+    pub dtype: String,  // for now do not parse the data type
 }
 
 #[derive(Debug)]
@@ -59,345 +58,318 @@ impl TextPos {
 
 pub struct Parser<'a> {
     input: str::Bytes<'a>,
-    current_char: Option<u8>,
+    current_char: u8,
     pos: TextPos,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(input: &'a str) -> Self {
-        let mut input = input.bytes();
-        let current_char = input.next();
-        Parser {
-            input,
-            current_char,
-            pos: TextPos {line: 1, column: 1}
-        }
+        let mut p = Parser {
+            input:  input.bytes(),
+            current_char: 0,
+            pos: TextPos {line: 1, column: 0}
+        };
+        p.advance();
+        p
     }
 
+    /// has the parser reached the end of input?
+    pub fn is_eof(&self) -> bool {
+        self.current_char == 0
+    }
+
+    /// get current parser position in the input
     pub fn pos(&self) -> TextPos {
         self.pos
     }
 
-    pub fn is_eof(&self) -> bool {
-        self.current_char.is_none()
+    /// advance parser to next character
+    fn advance(&mut self) {
+        self.current_char = self.input.next().unwrap_or(0);
+        self.pos.column += 1;
     }
 
-    pub fn peek_u8(&self) -> Option<u8> {
-        self.current_char
-    }
-
-    fn next_u8(&mut self) -> Result<u8> {
-        match self.peek_u8() {
-            Some(ch) => {
-                self.current_char = self.input.next();
-
-                if ch == b'\n' {
-                    self.pos.line += 1;
-                    self.pos.column = 1;
-                }
-                else {
-                    self.pos.column += 1;
-                }
-
-                Ok(ch)
-            }
-            None => Err(Error::Eof)
+    /// set parser to next non-space character
+    fn skip_spaces(&mut self) {
+        while self.current_char == b' ' {
+            self.advance();
         }
     }
 
-    fn skip_until(&mut self, delimiter: u8) -> Result<()> {
-        while self.peek_u8() != Some(delimiter) {
-            self.next_u8()?;
-        }
-        Ok(())
-    }
-
-    pub fn skip_whitespace(&mut self, skip_newline: bool) -> Result<()> {
+    /// set parser to next non-space character, skipping empty lines and comments
+    pub fn skip_empty(&mut self) {
         loop {
-            match (self.peek_u8(), skip_newline) {
-                (Some(b'%'), _) => {
-                    self.skip_until(b'\n')?;
-                    continue
-                },
-                (Some(b'\n'), true) => {}
-                (Some(b'\n'), false) => return Ok(()),
-                (Some(b' '), _) |
-                (Some(b'\t'), _) => {}
-                (Some(_), _)  => return Ok(()),
-                (None, _) => return Ok(()),
+            match self.current_char {
+                b' ' => self.advance(),
+                b'\n' => self.assume_newline(),
+                b'%' => self.skip_until(b'\n'),
+                _ => return
             }
-
-            self.current_char = self.input.next();
-            self.pos.column += 1;
         }
     }
 
-    pub fn match_eof(&mut self) -> Result<()> {
-        if self.is_eof() {
-            Ok(())
-        } else {
-            Err(Error::Expected(self.pos, "end of input"))
+    /// set parser to next occurence of given character
+    fn skip_until(&mut self, ch: u8) {
+        while self.current_char != ch {
+            self.advance();
         }
     }
 
-    pub fn match_token(&mut self, s: &'static str) -> Result<()> {
-        for c in s.bytes() {
-            if self.next_u8()?.to_ascii_uppercase() != c {
-                return Err(Error::Expected(self.pos, s))
-            }
+    /// consume one expected character
+    fn consume(&mut self, ch: u8) -> Result<()> {
+        if self.current_char != ch {
+            return Err(Error::UnexpectedChar(self.pos, ch as char,
+                                             self.current_char as char))
         }
-        self.skip_whitespace(false)?;
+        self.advance();
         Ok(())
     }
 
-    pub fn match_optional(&mut self, c: u8) -> Result<bool> {
-        match self.peek_u8() {
-            Some(ch) if ch == c => {
-                self.next_u8()?;
-                self.skip_whitespace(false)?;
-                Ok(true)
-            }
-            _ => Ok(false)
+    /// optionally consume one expected character
+    fn consume_optional(&mut self, ch: u8) -> bool {
+        if self.current_char == ch {
+            self.advance();
+            true
+        } else {
+            false
         }
     }
 
+    /// consume a newline character
+    ///
+    /// This should be the only function used for parsing newlines, because it adjusts the
+    /// internal position counter.
+    fn consume_newline(&mut self) -> Result<()> {
+        self.consume(b'\n')?;
+        self.pos.line += 1;
+        self.pos.column = 1;
+        Ok(())
+    }
+
+    /// assumes a newline character
+    ///
+    /// Same as consume_newline, but does not check the character and cannot fail
+    fn assume_newline(&mut self) {
+        self.advance();
+        self.pos.line += 1;
+        self.pos.column = 1;
+    }
+
+    /// parse a quoted or unquoted string
     pub fn parse_string(&mut self) -> Result<String> {
-        match self.peek_u8() {
-            None => Err(Error::Eof),
-            Some(b'\'') | Some(b'\"') => self.parse_quoted_string(),
+        match self.current_char {
+            b'\'' | b'\"' => self.parse_quoted_string(),
             _ => self.parse_unquoted_string(),
         }
     }
 
+    /// parse a string with `'` or `"`  delimiting characters
     fn parse_quoted_string(&mut self) -> Result<String> {
-        let delimiter = self.next_u8()?;
+        let delimiter = self.current_char;
+        self.advance();
+
         let mut s = Vec::new();
         loop {
-            let ch = self.next_u8()?;
-
-            if ch == delimiter {
-                self.skip_whitespace(false)?;
-                return Ok(String::from_utf8(s).unwrap())
-            } else {
-                s.push(ch);
+            match self.current_char {
+                0 => return Err(Error::Eof),
+                ch if ch == delimiter => break,
+                ch => s.push(ch),
             }
+            self.advance();
         }
+
+        self.advance();
+        Ok(String::from_utf8(s)?)
     }
 
+    /// parse an unquoted string
     fn parse_unquoted_string(&mut self) -> Result<String> {
         let mut s = Vec::new();
         loop {
-            match self.peek_u8() {
-                None => return Ok(String::from_utf8(s).unwrap()),
-                Some(ch) => {
-                    if ch == b' ' || ch == b'\t' || ch == b'\n' || ch == b',' || ch == b'{' || ch == b'}' {
-                        self.skip_whitespace(false)?;
-                        return Ok(String::from_utf8(s).unwrap())
-                    } else {
-                        self.next_u8()?;
-                        s.push(ch);
-                    }
-                }
+            match self.current_char {
+                b'0' | b' ' | b'\t' | b'\n' | b',' => return Ok(String::from_utf8(s)?),
+                ch => s.push(ch),
             }
+            self.advance();
         }
     }
 
-    fn parse_type(&mut self) -> Result<DType> {
-        match self.peek_u8().map(|c|c.to_ascii_uppercase()) {
-            Some(b'N') => {
-                self.match_token("NUMERIC")?;
-                Ok(DType::Numeric)
-            }
-            Some(b'I') => {
-                self.match_token("INTEGER")?;
-                Ok(DType::Numeric)
-            }
-            Some(b'S') => {
-                self.match_token("STRING")?;
-                Ok(DType::String)
-            }
-            Some(b'R') => {
-                self.match_token("RE")?;
-                match self.peek_u8().map(|c|c.to_ascii_uppercase()) {
-                    Some(b'A') => {
-                        // REAL
-                        self.match_token("AL")?;
-                        Ok(DType::Numeric)
-                    }
-                    Some(b'L') => {
-                        // RELATIONAL
-                        self.match_token("LATIONAL")?;
-                        unimplemented!()
-                    }
-                    _ => Err(Error::Expected(self.pos, "`@NUMERIC`, `@INTEGER`, `@STRING`, `@REAL`, `@RELATIONAL`, `@DATE`, or `{<identifier list>}`"))
-                }
-            }
-            Some(b'D') => {
-                self.match_token("DATE")?;
-                unimplemented!();
-            }
-            Some(b'{') => {
-                let mut v = Vec::new();
-                self.match_token("{")?;
-                while self.peek_u8() != Some(b'}') {
-                    v.push(self.parse_string()?);
-                    self.match_optional(b',')?;
-                }
-                self.match_token("}")?;
-                Ok(DType::Nominal(v))
-            }
-            _ => Err(Error::Expected(self.pos, "`@NUMERIC`, `@INTEGER`, `@STRING`, `@REAL`, `@RELATIONAL`, `@DATE`, or `{<identifier list>}`"))
+    /// skip spaces, if a `%`  character is encountered, the remaining line is skipped
+    pub fn ignore_comment(&mut self) {
+        self.skip_spaces();
+        if self.current_char == b'%' {
+            self.skip_until(b'\n');
         }
     }
 
-    pub fn parse_header(&mut self) -> Result<Header> {
-        self.skip_whitespace(true)?;
-
-        self.match_token("@RELATION")?;
-
+    /// parse name and dtype of an @ATTRIBUTE declaration
+    pub fn parse_attribute(&mut self) -> Result<Attribute> {
         let name = self.parse_string()?;
+        self.skip_spaces();
+        let dtype = self.parse_unquoted_string()?;
+        Ok(Attribute {name, dtype})
+    }
 
+    /// parse ARFF header
+    pub fn parse_header(&mut self) -> Result<Header> {
+        let mut name = String::from("unnamed_data");
         let mut attrs = Vec::new();
-        loop {
-            self.skip_whitespace(true)?;
-            self.match_token("@")?;
 
-            match self.peek_u8().map(|c|c.to_ascii_uppercase()) {
-                Some(b'A') => {
-                    self.match_token("ATTRIBUTE")?;
-                    let name = self.parse_string()?;
-                    let dtype = self.parse_type()?;
-                    attrs.push(Attribute{name, dtype});
+        loop {
+            loop {
+                // we are pretty liberal in accepting anything before and between @-declarations
+                match self.current_char {
+                    b'@' => break,
+                    b'\n' => self.consume_newline()?,
+                    0 => return Err(Error::Eof),
+                    _ => self.advance(),
                 }
-                Some(b'D') => {
-                    self.match_token("DATA")?;
-                    break
+            }
+
+            let pos = self.pos;
+            let token = self.parse_unquoted_string()?;
+
+            match token.as_ref() {
+                "@DATA" =>{
+                    self.ignore_comment();
+                    self.consume_newline()?;
+                    return Ok(Header{name, attrs})
                 }
-                _ => return Err(Error::Expected(self.pos, "`@ATTRIBUTE <identifier> <type>` or `@DATA`"))
+                "@RELATION" => {
+                    self.skip_spaces();
+                    name = self.parse_string()?;
+                    self.ignore_comment();
+                }
+                "@ATTRIBUTE" => {
+                    self.skip_spaces();
+                    attrs.push(self.parse_attribute()?);
+                    self.ignore_comment();
+                }
+                _ => return Err(Error::Expected(pos, "`@RELATION`, `@ATTRIBUTE`, or `@DATA@"))
             }
         }
-        self.skip_whitespace(true)?;
-        Ok(Header{name, attrs})
     }
 
-    pub fn parse_newline(&mut self) -> Result<()> {
-        self.match_token("\n")
+    /// Make sure the parser has reached the end of input (spaces, newlines, and comments allowed)
+    pub fn parse_eof(&mut self) -> Result<()> {
+        self.skip_empty();
+        loop {
+            match self.current_char {
+                b' ' => self.advance(),
+                b'\n' => self.consume_newline()?,
+                0 => return Ok(()),
+                _ => return Err(Error::Expected(self.pos, "end of input")),
+            }
+        }
     }
 
+    /// Parse a column delimiter: comma or tab followed by optional spaces
+    pub fn parse_column_delimiter(&mut self) -> Result<()> {
+        match self.current_char {
+            b',' | b'\t' => self.advance(),
+            _ => return Err(Error::Expected(self.pos, "`,` or `\t`")),
+        }
+        self.skip_spaces();
+        Ok(())
+    }
+
+    /// Are we at the end of a row?
+    pub fn check_row_delimiter(&mut self) -> bool {
+        match self.current_char {
+            b'\n' |
+            0 => true,
+            _ => false,
+        }
+    }
+
+    /// Parse a row delimiter: optional comment followed by newline or eof
+    pub fn parse_row_delimiter(&mut self) -> Result<()> {
+        self.ignore_comment();
+        if self.current_char == 0 {
+            Ok(())
+        } else {
+            self.consume_newline()
+        }
+    }
+
+    /// Check for a missing value. This cannot fail.
+    pub fn parse_is_missing(&mut self) -> bool {
+        self.consume_optional(b'?')
+    }
+
+    /// Parse a boolean value
+    pub fn parse_bool(&mut self) -> Result<bool> {
+        let pos = self.pos;
+        let strval = self.parse_unquoted_string()?.to_ascii_uppercase();
+        match strval.as_ref() {
+            "0" | "F" | "FALSE" | "N" | "NO" => Ok(false),
+            "1" | "T" | "TRUE" | "Y" | "YES" => Ok(true),
+            _ => Err(Error::Expected(pos, "boolean value"))
+        }
+    }
+
+    /// Parse a unsigned integer value
     pub fn parse_unsigned(&mut self) -> Result<u64> {
         let pos = self.pos();
 
-        let mut i = match self.next_u8()? {
+        let mut value = match self.current_char {
             ch @ b'0' ... b'9' => (ch as u8 - b'0') as u64,
             b'+' => 0,
             _ => return Err(Error::ExpectedUnsignedValue(pos)),
         };
 
         loop {
+            self.advance();
             match self.current_char {
-                Some(ch @ b'0' ... b'9') => {
-                    self.current_char = self.input.next();
-                    self.pos.column += 1;
-                    i = i
-                        .checked_mul(10)
+                ch @ b'0' ... b'9' => {
+                    value = value.checked_mul(10)
                         .ok_or(Error::NumericOverflow(pos))?
                         .checked_add((ch - b'0') as u64)
                         .ok_or(Error::NumericOverflow(pos))?;
                 }
-                _ => {
-                    self.skip_whitespace(false)?;
-                    return Ok(i)
-                }
+                _ => return Ok(value),
             }
         }
     }
 
+    /// Parse a signed integer value
     pub fn parse_signed(&mut self) -> Result<i64> {
         let pos = self.pos();
-        let sign = match self.peek_u8() {
-            Some(b'-') => {
-                self.next_u8()?;
-                true
-            },
-            Some(b'+') => {
-                self.next_u8()?;
-                false
-            },
+
+        let negative = match self.current_char {
+            b'-' => { self.advance(); true }
+            b'+' => { self.advance(); false }
             _ => false,
         };
 
-        match (sign, self.parse_unsigned()) {
+        match (negative, self.parse_unsigned()) {
             (_, Err(Error::ExpectedUnsignedValue(_))) => Err(Error::ExpectedIntegerValue(pos)),
             (_, Err(e)) => Err(e),
             (true, Ok(I64_MINABS)) => Ok(i64::MIN),
-            (false, Ok(uval @ 0...I64_MAX)) => Ok(uval as i64),
             (true, Ok(uval @ 0...I64_MAX)) => Ok(-(uval as i64)),
+            (false, Ok(uval @ 0...I64_MAX)) => Ok(uval as i64),
             _ => Err(Error::NumericRange(pos, i64::MIN, i64::MAX)),
         }
     }
 
+    /// Parse a floating point value
     pub fn parse_float(&mut self) -> Result<f64> {
         let pos = self.pos();
 
         let mut s = Vec::new();
         loop {
-            match self.peek_u8() {
-                Some(ch@b'+') | Some(ch@b'-') | Some(ch@b'.') | Some(ch@b'e') | Some(ch@b'E') |
-                Some(ch@b'0'...b'9') => {
-                    self.next_u8()?;
-                    s.push(ch);
-                },
+            match self.current_char {
+                ch @ b'+' | ch @ b'-' | ch @ b'.' |
+                ch @ b'e' | ch @ b'E' |
+                ch @ b'0'...b'9' => s.push(ch),
                 _ => break,
             }
+            self.advance();
         }
+
         match String::from_utf8(s).unwrap().parse() {
             Ok(v) => Ok(v),
             Err(_) => Err(Error::ExpectedFloatValue(pos)),
-        }
-    }
-
-    pub fn parse_bool(&mut self) -> Result<bool> {
-        let pos = self.pos();
-        let result = match self.next_u8()?.to_ascii_uppercase() {
-            b'0' => Ok(false),
-            b'1' => Ok(true),
-            b'F' => {
-                if let Some(b'A') = self.peek_u8().map(|c|c.to_ascii_uppercase()) {
-                    self.match_token("ALSE").map(|_|false)
-                } else {
-                    Ok(false)
-                }
-            },
-            b'T' => {
-                if let Some(b'R') = self.peek_u8().map(|c|c.to_ascii_uppercase()) {
-                    self.match_token("RUE").map(|_|true)
-                } else {
-                    Ok(true)
-                }
-            },
-            b'N' => {
-                if let Some(b'O') = self.peek_u8().map(|c|c.to_ascii_uppercase()) {
-                    self.match_token("O").map(|_|false)
-                } else {
-                    Ok(false)
-                }
-            },
-            b'Y' => {
-                if let Some(b'E') = self.peek_u8().map(|c|c.to_ascii_uppercase()) {
-                    self.match_token("ES").map(|_|true)
-                } else {
-                    Ok(true)
-                }
-            },
-            _ => return Err(Error::Expected(pos, ""))
-        };
-
-        self.skip_whitespace(false)?;
-
-        match result {
-            Ok(v) => Ok(v),
-            Err(Error::Expected(_, _)) => Err(Error::Expected(pos, "`1`, `0`, `T`, `F`, `Y`, `N`, `TRUE`, `FALSE`, `YES`, or `NO`")),
-            Err(e) => Err(e),
         }
     }
 }

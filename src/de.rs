@@ -24,9 +24,7 @@ pub fn from_str<'a, T>(s: &'a str) -> Result<T>
 
     let t = T::deserialize(&mut deserializer)?;
 
-    deserializer.parser.skip_whitespace(true)?;
-
-    deserializer.parser.match_eof()?;
+    deserializer.parser.parse_eof()?;
 
     Ok(t)
 }
@@ -431,7 +429,7 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         where
             V: Visitor<'de>,
     {
-        if self.parser.match_optional(b'?')? {
+        if self.parser.parse_is_missing() {
             visitor.visit_none()
         } else {
             visitor.visit_some(self)
@@ -466,18 +464,18 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         visitor.visit_seq(DataCols::new(self))
     }
 
-    fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
+    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        self.deserialize_seq(visitor)
+        visitor.visit_seq(DataColsTuple::new(len, self))
     }
 
-    fn deserialize_tuple_struct<V>(self, _name: &'static str, _len: usize, visitor: V) -> Result<V::Value>
+    fn deserialize_tuple_struct<V>(self, _name: &'static str, len: usize, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        self.deserialize_seq(visitor)
+        self.deserialize_tuple(len, visitor)
     }
 
     fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
@@ -534,19 +532,18 @@ impl<'de, 'a> SeqAccess<'de> for DataRows<'a, 'de> {
         where
             T: DeserializeSeed<'de>,
     {
+        self.de.parser.skip_empty();
+
         if self.de.parser.is_eof() {
-            Ok(None)
-        } else {
-            let value = {
-                let mut de = RowDeserializer::new(&mut self.de);
-                Some(seed.deserialize(&mut de)?)
-            };
-            match self.de.parser.parse_newline() {
-                Ok(_) => Ok(value),
-                Err(Error::Eof) => Ok(value),
-                Err(e) => Err(e),
-            }
+            return Ok(None)
         }
+
+        let value = {
+            let mut de = RowDeserializer::new(&mut self.de);
+            seed.deserialize(&mut de)?
+        };
+        self.de.parser.parse_row_delimiter()?;
+        Ok(Some(value))
     }
 }
 
@@ -581,7 +578,7 @@ impl<'a, 'b, 'de> MapAccess<'de> for DataCols<'a, 'b, 'de> {
         let value = seed.deserialize(&mut *self.de)?;
         self.de.current_column += 1;
         if self.de.current_column < self.de.header.attrs.len() {
-            self.de.parser.match_token(",")?;
+            self.de.parser.parse_column_delimiter()?;
         }
         Ok(value)
     }
@@ -594,13 +591,52 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataCols<'a, 'b, 'de> {
         where
             T: DeserializeSeed<'de>,
     {
-        match self.de.parser.peek_u8() {
-            None | Some(b'\n') => return Ok(None),
-            _ => {}
+        if self.de.parser.check_row_delimiter() {
+            return Ok(None)
         }
 
         let value = seed.deserialize(&mut *self.de)?;
-        self.de.parser.match_optional(b',')?;
+        self.de.current_column += 1;
+        if self.de.current_column < self.de.header.attrs.len() {
+            self.de.parser.parse_column_delimiter()?;
+        }
+        Ok(Some(value))
+    }
+}
+
+struct DataColsTuple<'a, 'b: 'a, 'de: 'b> {
+    de: &'a mut RowDeserializer<'de, 'b>,
+    n_elements_to_go: usize,
+}
+
+impl<'a, 'b, 'de> DataColsTuple<'a, 'b, 'de> {
+    fn new(len: usize, de: &'a mut RowDeserializer<'de, 'b>) -> Self {
+        DataColsTuple {
+            de,
+            n_elements_to_go: len,
+        }
+    }
+}
+
+impl<'de, 'a, 'b> SeqAccess<'de> for DataColsTuple<'a, 'b, 'de> {
+    type Error = Error;
+
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
+        where
+            T: DeserializeSeed<'de>,
+    {
+        if self.de.parser.check_row_delimiter() {
+            return Ok(None)
+        }
+
+        let value = seed.deserialize(&mut *self.de)?;
+
+        self.de.current_column += 1;
+        self.n_elements_to_go -= 1;
+
+        if self.n_elements_to_go > 0 {
+            self.de.parser.parse_column_delimiter()?;
+        }
         Ok(Some(value))
     }
 }
@@ -746,7 +782,7 @@ fn test_comments() {
 % This is a comment
 @RELATION Data
 
-@ATTRIBUTE a NUMERIC  % @DATA  % this would fail if not commented
+@ATTRIBUTE a NUMERIC  % @DATA  % this would fail if not parsed as comment
 @ATTRIBUTE b NUMERIC  %This is also a comment
 
 @DATA
@@ -764,26 +800,26 @@ fn test_comments() {
 fn test_ranges() {
     use std::{i64, u64};
     use parser::TextPos;
-    assert_eq!(from_str("@RELATION x @DATA 0, 255"), Ok([[0u8, 255]]));
-    assert_eq!(from_str::<[[u8;1];1]>("@RELATION x @DATA  -1"), Err(Error::ExpectedUnsignedValue(TextPos::new(1, 20))));
-    assert_eq!(from_str::<[[u8;1];1]>("@RELATION x @DATA 256"), Err(Error::NumericRange(TextPos::new(1, 19), 0, 255)));
+    assert_eq!(from_str("@RELATION x @DATA\n 0, 255"), Ok([[0u8, 255]]));
+    assert_eq!(from_str::<[[u8;1];1]>("@RELATION x @DATA\n  -1"), Err(Error::ExpectedUnsignedValue(TextPos::new(2, 3))));
+    assert_eq!(from_str::<[[u8;1];1]>("@RELATION x @DATA\n 256"), Err(Error::NumericRange(TextPos::new(2, 2), 0, 255)));
 
-    assert_eq!(from_str("@RELATION x @DATA -128, 127"), Ok([[-128i8, 127]]));
-    assert_eq!(from_str::<[[i8;1];1]>("@RELATION x @DATA -129"), Err(Error::NumericRange(TextPos::new(1, 19), -128, 127)));
-    assert_eq!(from_str::<[[i8;1];1]>("@RELATION x @DATA  128"), Err(Error::NumericRange(TextPos::new(1, 20), -128, 127)));
+    assert_eq!(from_str("@RELATION x @DATA\n -128, 127"), Ok([[-128i8, 127]]));
+    assert_eq!(from_str::<[[i8;1];1]>("@RELATION x @DATA\n -129"), Err(Error::NumericRange(TextPos::new(2, 2), -128, 127)));
+    assert_eq!(from_str::<[[i8;1];1]>("@RELATION x @DATA\n  128"), Err(Error::NumericRange(TextPos::new(2, 3), -128, 127)));
 
-    assert_eq!(from_str("@RELATION x @DATA -9223372036854775808, 9223372036854775807"), Ok([[i64::MIN, i64::MAX]]));
-    assert_eq!(from_str::<[[i64;1];1]>("@RELATION x @DATA -9223372036854775809"), Err(Error::NumericRange(TextPos::new(1, 19), i64::MIN, i64::MAX)));
-    assert_eq!(from_str::<[[i64;1];1]>("@RELATION x @DATA  9223372036854775808"), Err(Error::NumericRange(TextPos::new(1, 20), i64::MIN, i64::MAX)));
+    assert_eq!(from_str("@RELATION x @DATA\n -9223372036854775808, 9223372036854775807"), Ok([[i64::MIN, i64::MAX]]));
+    assert_eq!(from_str::<[[i64;1];1]>("@RELATION x @DATA\n -9223372036854775809"), Err(Error::NumericRange(TextPos::new(2, 2), i64::MIN, i64::MAX)));
+    assert_eq!(from_str::<[[i64;1];1]>("@RELATION x @DATA\n  9223372036854775808"), Err(Error::NumericRange(TextPos::new(2, 3), i64::MIN, i64::MAX)));
 
-    assert_eq!(from_str("@RELATION x @DATA 0, 18446744073709551615"), Ok([[u64::MIN, u64::MAX]]));
-    assert_eq!(from_str::<[[u64;1];1]>("@RELATION x @DATA                   -1"), Err(Error::ExpectedUnsignedValue(TextPos::new(1, 37))));
-    assert_eq!(from_str::<[[u64;1];1]>("@RELATION x @DATA 18446744073709551616"), Err(Error::NumericOverflow(TextPos::new(1, 19))));
+    assert_eq!(from_str("@RELATION x @DATA\n 0, 18446744073709551615"), Ok([[u64::MIN, u64::MAX]]));
+    assert_eq!(from_str::<[[u64;1];1]>("@RELATION x @DATA\n                   -1"), Err(Error::ExpectedUnsignedValue(TextPos::new(2, 20))));
+    assert_eq!(from_str::<[[u64;1];1]>("@RELATION x @DATA\n 18446744073709551616"), Err(Error::NumericOverflow(TextPos::new(2, 2))));
 }
 
 #[test]
 fn test_missing() {
-    assert_eq!(from_str("@RELATION x @DATA 1 \n ? \n 3"), Ok([[Some(1)], [None], [Some(3)]]));
+    assert_eq!(from_str("@RELATION x @DATA\n 1\n ?\n 3"), Ok([[Some(1)], [None], [Some(3)]]));
 }
 
 #[test]
@@ -806,7 +842,6 @@ fn test_vecseq() {
 
 #[test]
 fn test_2d_and_label() {
-
     let input = "@RELATION Data
 
 @ATTRIBUTE a NUMERIC
@@ -827,4 +862,35 @@ fn test_2d_and_label() {
     let res: Data = from_str(input).unwrap();
     assert_eq!(res, vec![DataRow([[1, 2], [3, 4]], "a".to_owned()),
                          DataRow([[11, 12], [21, 22]], "b".to_owned())]);
+}
+
+#[test]
+fn test_eof_whitespace() {
+    let input = "@RELATION Data
+
+@ATTRIBUTE a NUMERIC
+
+@DATA
+1
+2
+
+
+      ";
+
+    let res: [[u8; 1]; 2] = from_str(input).unwrap();
+    assert_eq!(res, [[1], [2]]);
+}
+
+#[test]
+fn test_eof_direct() {
+    let input = "@RELATION Data
+
+@ATTRIBUTE a NUMERIC
+
+@DATA
+1
+2";
+
+    let res: [[u8; 1]; 2] = from_str(input).unwrap();
+    assert_eq!(res, [[1], [2]]);
 }

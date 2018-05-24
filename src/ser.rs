@@ -85,6 +85,7 @@ pub fn to_string<T>(value: &T) -> Result<String>
     Ok(header + &serializer.output)
 }
 
+/// Serialize a Rust data structure into an ARFF formatted string.
 pub struct Serializer {
     header: Header,
     output: String,
