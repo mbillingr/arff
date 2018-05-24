@@ -22,11 +22,9 @@ either a `struct` with named columns or a sequence with static length.
 
 ## Example
 
-This crate is not yet published at [crates.io](https://crates.io/), so 
-your `Cargo.toml` needs to link to the repository directly.
 ```toml
 [dependencies]
-arff = { git = "https://github.com/mbillingr/arff" }
+arff = "0.1"
 ```
 
 ```rust
