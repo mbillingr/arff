@@ -895,3 +895,16 @@ fn test_eof_direct() {
     let res: [[u8; 1]; 2] = from_str(input).unwrap();
     assert_eq!(res, [[1], [2]]);
 }
+
+#[test]
+fn test_case() {
+    let input = "@rElAtIoN Data
+
+@aTtRiBuTe a nUmErIc
+
+@DaTa
+1.0";
+
+    let res: [[f32; 1];1] = from_str(input).unwrap();
+    assert_eq!(res, [[1.0]]);
+}

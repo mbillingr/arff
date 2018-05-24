@@ -228,7 +228,8 @@ impl<'a> Parser<'a> {
             }
 
             let pos = self.pos;
-            let token = self.parse_unquoted_string()?;
+            let mut token = self.parse_unquoted_string()?;
+            token.make_ascii_uppercase();
 
             match token.as_ref() {
                 "@DATA" =>{
