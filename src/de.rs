@@ -780,6 +780,7 @@ fn test_comments() {
 
     let input = "
 % This is a comment
+% Who put an e@ma.il here?
 @RELATION Data
 
 @ATTRIBUTE a NUMERIC  % @DATA  % this would fail if not parsed as comment

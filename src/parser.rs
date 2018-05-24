@@ -221,6 +221,7 @@ impl<'a> Parser<'a> {
                 match self.current_char {
                     b'@' => break,
                     b'\n' => self.consume_newline()?,
+                    b'%' => self.skip_until(b'\n'),
                     0 => return Err(Error::Eof),
                     _ => self.advance(),
                 }
@@ -245,7 +246,7 @@ impl<'a> Parser<'a> {
                     attrs.push(self.parse_attribute()?);
                     self.ignore_comment();
                 }
-                _ => return Err(Error::Expected(pos, "`@RELATION`, `@ATTRIBUTE`, or `@DATA@"))
+                _ => return Err(Error::Expected(pos, "`@RELATION`, `@ATTRIBUTE`, or `@DATA"))
             }
         }
     }
