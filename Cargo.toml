@@ -5,7 +5,7 @@ authors = ["Martin Billinger <flkazemakase@gmail.com>"]
 
 description = "ARFF file format serializer and deserializer"
 keywords = ["arff", "parser", "data", "weka"]
-categories = ["encoding", "parsing", "science"]
+categories = ["encoding", "science"]
 
 repository = "https://github.com/mbillingr/arff"
 readme = "README.md"
