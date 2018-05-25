@@ -57,6 +57,47 @@ fn main() {
 }
 ```
 
+## Supported Data Types
+
+The tabular ARFF data is represented in Rust as a sequence of rows. Columns
+may have different data types, but each row must be the same.
+
+### Serialization
+
+If `Row` is a valid type that can be serialized into a data row, the following 
+types can be serialized as ARFF data sets:
+
+  - Vectors: `Vec<Row>`
+  - Slices: `&[Row]`
+  - Arrays: `[Row; N]`
+  - Tuples: `(Row, Row, Row, ...)`
+  
+By default the data set is named `unnamed_data`. You can give the data set
+a different name by wrapping it in a newtype struct. For example, 
+`MyData(Vec<Row>)` is represented in ARFF as
+
+```arff
+@RELATION MyData
+...
+```
+
+A tuple struct is serialized like a tuple wrapped in a newtype struct.
+`MoreData((Row, Row, Row))` is equivalent to `MoreData(Row, Row, Row)`.
+
+Valid types for the `Row` data format are
+
+ - Structures: `#[derive(Serialize)] struct Row { ... }`
+ - Tuples: `type Row = (i32, f64, bool, String, ...);`
+ - Arrays: `type Row<T> = [T; N];`
+ 
+TODO: 
+- Nested sequences
+- Allowed column types
+ 
+### Deserialization
+
+TODO
+
 ## License
 
 The ARFF crate is licensed under either of

@@ -159,5 +159,46 @@ mod tests {
 
         assert_eq!(deser, orig);
     }
-}
 
+    #[test]
+    fn type_ser_support_outer() {
+        type Row = [i32; 1];
+
+        let d_tuple: (Row, Row) = ([1], [2]);
+        let d_array: [Row; 2] = [[1], [2]];
+        let d_vec: Vec<Row> = d_array.to_vec();
+        let d_slice: &[Row] = d_array.as_ref();
+
+        assert_eq!(to_string(&d_tuple).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "unnamed_data"));
+        assert_eq!(to_string(&d_array).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "unnamed_data"));
+        assert_eq!(to_string(&d_vec).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "unnamed_data"));
+        assert_eq!(to_string(&d_slice).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "unnamed_data"));
+
+        #[derive(Serialize, Deserialize)]
+        struct NewtypeStruct(Vec<Row>);
+        let d_newtype_struct = NewtypeStruct(vec![[1], [2]]);
+        assert_eq!(to_string(&d_newtype_struct).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "NewtypeStruct"));
+
+        #[derive(Serialize, Deserialize)]
+        struct TupleStruct(Row, Row);
+        let d_tuple_struct = TupleStruct([1], [2]);
+        assert_eq!(to_string(&d_tuple_struct).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "TupleStruct"));
+    }
+
+    #[test]
+    fn type_ser_support_inner() {
+        #[derive(Serialize)]
+        struct StructRow {
+            x: f64,
+            y: i32,
+        };
+
+        let d_struct = [StructRow{x: 1.1, y: 2}];
+        let d_tuple: [(f64, i32); 1] = [(1.1, 2)];
+        let d_array: [[f64; 2]; 1] = [[1.1, 2.0]];
+
+        assert_eq!(to_string(&d_struct).unwrap(), "@RELATION unnamed_data\n\n@ATTRIBUTE x NUMERIC\n@ATTRIBUTE y NUMERIC\n\n@DATA\n1.1, 2\n", "unnamed_data");
+        assert_eq!(to_string(&d_tuple).unwrap(), "@RELATION unnamed_data\n\n@ATTRIBUTE col1 NUMERIC\n@ATTRIBUTE col2 NUMERIC\n\n@DATA\n1.1, 2\n", "unnamed_data");
+        assert_eq!(to_string(&d_array).unwrap(), "@RELATION unnamed_data\n\n@ATTRIBUTE col1 NUMERIC\n@ATTRIBUTE col2 NUMERIC\n\n@DATA\n1.1, 2\n", "unnamed_data");
+    }
+}
