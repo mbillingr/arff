@@ -21,6 +21,7 @@ pub enum Error {
     Message(String),
 
     // Serializer
+    UnexpectedType,
     InconsistentType { row: usize, column: usize },
 
     // Deserializer
@@ -59,6 +60,7 @@ impl std::error::Error for Error {
     fn description(&self) -> &str {
         match *self {
             Error::Message(ref msg) => msg,
+            Error::UnexpectedType => "unexpected data type",
             Error::InconsistentType{..} => "inconsistent data type",
             Error::Eof => "unexpected end of input",
             Error::Expected(_, ref what) => what,

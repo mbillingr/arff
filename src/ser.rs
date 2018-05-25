@@ -216,8 +216,9 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         Ok(self)
     }
 
-    fn serialize_tuple_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeTupleStruct> {
-        unimplemented!()
+    fn serialize_tuple_struct(self, name: &'static str, _len: usize) -> Result<Self::SerializeTupleStruct> {
+        self.header.name = name;
+        Ok(self)
     }
 
     fn serialize_tuple_variant(self, _name: &'static str, _variant_index: u32, _variant: &'static str, _len: usize) -> Result<Self::SerializeTupleVariant> {
@@ -284,15 +285,21 @@ impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_field<T>(&mut self, _value: &T) -> Result<()>
+    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
         where
             T: ?Sized + Serialize
     {
-        unimplemented!()
+        {
+            let mut ser = RowSerializer::new(self);
+            value.serialize(&mut ser)?;
+        }
+        self.output += "\n";
+        self.current_row += 1;
+        Ok(())
     }
 
     fn end(self) -> Result<()> {
-        unimplemented!()
+        Ok(())
     }
 }
 
@@ -373,6 +380,7 @@ pub struct RowSerializer<'a> {
     current_column: usize,
     current_key: Option<&'static str>,
     row: usize,
+    depth: u32,
 }
 
 impl<'a> RowSerializer<'a> {
@@ -383,6 +391,7 @@ impl<'a> RowSerializer<'a> {
             current_column: 0,
             current_key: None,
             row: ser.current_row,
+            depth: 0,
         }
     }
 
@@ -436,6 +445,9 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     type SerializeStructVariant = Self;
 
     fn serialize_bool(self, v: bool) -> Result<()> {
+        if self.depth == 0 {
+            return Err(Error::UnexpectedType)
+        }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Nominal(["f", "t"].iter().cloned().collect())),
             Some(DType::Nominal(_)) => {}
@@ -458,6 +470,9 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     }
 
     fn serialize_i64(self, v: i64) -> Result<()> {
+        if self.depth == 0 {
+            return Err(Error::UnexpectedType)
+        }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
             Some(DType::Numeric) => {}
@@ -480,6 +495,9 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     }
 
     fn serialize_u64(self, v: u64) -> Result<()> {
+        if self.depth == 0 {
+            return Err(Error::UnexpectedType)
+        }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
             Some(DType::Numeric) => {}
@@ -494,6 +512,9 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     }
 
     fn serialize_f64(self, v: f64) -> Result<()> {
+        if self.depth == 0 {
+            return Err(Error::UnexpectedType)
+        }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
             Some(DType::Numeric) => {}
@@ -508,6 +529,9 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     }
 
     fn serialize_str(self, v: &str) -> Result<()> {
+        if self.depth == 0 {
+            return Err(Error::UnexpectedType)
+        }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::String),
             Some(DType::String) => {}
@@ -524,6 +548,9 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     }
 
     fn serialize_none(self) -> Result<()> {
+        if self.depth == 0 {
+            return Err(Error::UnexpectedType)
+        }
         *self.output += "?";
         Ok(())
     }
@@ -532,6 +559,9 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         where
             T: ?Sized + Serialize,
     {
+        if self.depth == 0 {
+            return Err(Error::UnexpectedType)
+        }
         value.serialize(self)
     }
 
@@ -544,6 +574,10 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     }
 
     fn serialize_unit_variant(self, _name: &'static str, _variant_index: u32, variant: &'static str) -> Result<()> {
+        if self.depth == 0 {
+            return Err(Error::UnexpectedType)
+        }
+
         if self.get_current_dtype().is_none() {
             self.set_current_dtype(DType::Nominal(BTreeSet::new()));
         }
@@ -583,6 +617,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     }
 
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple> {
+        self.depth += 1;
         Ok(self)
     }
 
@@ -599,6 +634,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     }
 
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
+        self.depth += 1;
         Ok(self)
     }
 
@@ -652,6 +688,7 @@ impl<'a, 'b> ser::SerializeTuple for &'b mut RowSerializer<'a> {
     }
 
     fn end(self) -> Result<()> {
+        self.depth -= 1;
         Ok(())
     }
 }
@@ -733,6 +770,7 @@ impl<'a, 'b> ser::SerializeStruct for &'b mut RowSerializer<'a> {
     }
 
     fn end(self) -> Result<()> {
+        self.depth -= 1;
         Ok(())
     }
 }
