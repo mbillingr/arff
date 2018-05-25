@@ -161,6 +161,38 @@ mod tests {
     }
 
     #[test]
+    fn roundtrip_4() {
+
+        type Row = [[i32; 2]; 2];
+
+        let orig = vec![
+            [[1, 2], [3, 4]],
+            [[1, 3], [2, 4]],
+        ];
+
+        let arff = to_string(&orig).unwrap();
+        let deser: Vec<Row> = from_str(&arff).unwrap();
+
+        assert_eq!(deser, orig);
+    }
+
+    #[test]
+    fn roundtrip_5() {
+
+        type Row = (i32, [u8; 2], i32);
+
+        let orig = vec![
+            (1, [2, 3], 4),
+            (5, [6, 7], 8),
+        ];
+
+        let arff = to_string(&orig).unwrap();
+        let deser: Vec<Row> = from_str(&arff).unwrap();
+
+        assert_eq!(deser, orig);
+    }
+
+    #[test]
     fn type_ser_support_outer() {
         type Row = [i32; 1];
 
@@ -197,8 +229,8 @@ mod tests {
         let d_tuple: [(f64, i32); 1] = [(1.1, 2)];
         let d_array: [[f64; 2]; 1] = [[1.1, 2.0]];
 
-        assert_eq!(to_string(&d_struct).unwrap(), "@RELATION unnamed_data\n\n@ATTRIBUTE x NUMERIC\n@ATTRIBUTE y NUMERIC\n\n@DATA\n1.1, 2\n", "unnamed_data");
-        assert_eq!(to_string(&d_tuple).unwrap(), "@RELATION unnamed_data\n\n@ATTRIBUTE col1 NUMERIC\n@ATTRIBUTE col2 NUMERIC\n\n@DATA\n1.1, 2\n", "unnamed_data");
-        assert_eq!(to_string(&d_array).unwrap(), "@RELATION unnamed_data\n\n@ATTRIBUTE col1 NUMERIC\n@ATTRIBUTE col2 NUMERIC\n\n@DATA\n1.1, 2\n", "unnamed_data");
+        assert_eq!(to_string(&d_struct).unwrap(), "@RELATION unnamed_data\n\n@ATTRIBUTE x NUMERIC\n@ATTRIBUTE y NUMERIC\n\n@DATA\n1.1, 2\n");
+        assert_eq!(to_string(&d_tuple).unwrap(), "@RELATION unnamed_data\n\n@ATTRIBUTE col1 NUMERIC\n@ATTRIBUTE col2 NUMERIC\n\n@DATA\n1.1, 2\n");
+        assert_eq!(to_string(&d_array).unwrap(), "@RELATION unnamed_data\n\n@ATTRIBUTE col1 NUMERIC\n@ATTRIBUTE col2 NUMERIC\n\n@DATA\n1.1, 2\n");
     }
 }

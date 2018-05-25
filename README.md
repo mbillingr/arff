@@ -10,7 +10,8 @@ instances and columns are attributes. Meta data such as attribute
 format.
 
 ## Usage
-- ARFF is used as an input file format by the machine-learning tool Weka.
+- ARFF is used as an input file format by the machine-learning tool
+  Weka.
 - The [OpenML website](https://www.openml.org/) provides data sets in
   ARFF and CSV formats.
 
@@ -59,21 +60,23 @@ fn main() {
 
 ## Supported Data Types
 
-The tabular ARFF data is represented in Rust as a sequence of rows. Columns
-may have different data types, but each row must be the same.
+The tabular ARFF data is represented in Rust as a sequence of rows.
+Columns may have different data types, but each row must be the same.
 
 ### Serialization
 
-If `Row` is a valid type that can be serialized into a data row, the following 
-types can be serialized as ARFF data sets:
+#### Data Set Types
+
+If `Row` is a valid type that can be serialized into a data row, the
+following  types can be serialized as ARFF data sets:
 
   - Vectors: `Vec<Row>`
   - Slices: `&[Row]`
   - Arrays: `[Row; N]`
   - Tuples: `(Row, Row, Row, ...)`
   
-By default the data set is named `unnamed_data`. You can give the data set
-a different name by wrapping it in a newtype struct. For example, 
+By default the data set is named `unnamed_data`. You can give the data
+set a different name by wrapping it in a newtype struct. For example,
 `MyData(Vec<Row>)` is represented in ARFF as
 
 ```arff
@@ -84,15 +87,36 @@ a different name by wrapping it in a newtype struct. For example,
 A tuple struct is serialized like a tuple wrapped in a newtype struct.
 `MoreData((Row, Row, Row))` is equivalent to `MoreData(Row, Row, Row)`.
 
+#### Data Row Types
+
 Valid types for the `Row` data format are
 
  - Structures: `#[derive(Serialize)] struct Row { ... }`
  - Tuples: `type Row = (i32, f64, bool, String, ...);`
  - Arrays: `type Row<T> = [T; N];`
- 
-TODO: 
-- Nested sequences
-- Allowed column types
+
+#### Nested Columns
+
+It is possible to have nested sequences as rows. These will be flattened
+during serialization. For example, `[[i32; 2]; 2]`,
+`(i32, [i32; 2], i32)`, and `[i32; 4]` result in equivalent
+serializations.
+
+Nested structs are currently not supported because they could result in
+ambiguous column names.
+
+#### Value Types
+
+ARFF supports NUMURIC, STRING, and NOMINAL data types. The serializer
+performs the following mappings from rust types to ARFF types:
+
+  - NUMERIC <-- `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64`
+  - STRING <-- `String`, `&str`
+  - NOMINAL <-- `enum`
+
+Missing values are encoded as `?` in ARFF. `Option::None` is mapped to
+`?`, while `Option::Some(T)` is unwrapped and serialized according to
+the rules above.
  
 ### Deserialization
 
