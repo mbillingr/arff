@@ -1,4 +1,11 @@
-# ARFF
+# ARFF &emsp; [![Build Status]][travis] [![Latest Version]][crates.io] [![Rustc Version 1.23+]][rustc]
+
+[Build Status]: https://api.travis-ci.org/mbillingr/arff.svg?branch=master
+[travis]: https://travis-ci.org/mbillingr/arff
+[Latest Version]: https://img.shields.io/crates/v/arff.svg
+[crates.io]: https://crates.io/crates/arff
+[Rustc Version 1.23+]: https://img.shields.io/badge/rustc-1.23+-lightgray.svg
+[rustc]: https://blog.rust-lang.org/2018/01/04/Rust-1.23.html
 
 ARFF file format serializer and deserializer
 
