@@ -53,9 +53,9 @@ enum DType {
 
 impl DType {
     fn to_string(&self) -> String {
-        match self {
+        match *self {
             DType::Numeric => "NUMERIC".to_owned(),
-            DType::Nominal(names) => {
+            DType::Nominal(ref names) => {
                 let mut s = "{".to_owned();
                 for (i, n) in names.iter().enumerate() {
                     if i > 0 {
@@ -450,7 +450,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Nominal(["f", "t"].iter().cloned().collect())),
-            Some(DType::Nominal(_)) => {}
+            Some(&DType::Nominal(_)) => {}
             Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
         }
         *self.output += if v {"t"} else {"f"};
@@ -475,7 +475,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
-            Some(DType::Numeric) => {}
+            Some(&DType::Numeric) => {}
             Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
         }
         *self.output += &v.to_string();
@@ -500,7 +500,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
-            Some(DType::Numeric) => {}
+            Some(&DType::Numeric) => {}
             Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
         }
         *self.output += &v.to_string();
@@ -517,7 +517,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
-            Some(DType::Numeric) => {}
+            Some(&DType::Numeric) => {}
             Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
         }
         *self.output += &v.to_string();
@@ -534,7 +534,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::String),
-            Some(DType::String) => {}
+            Some(&DType::String) => {}
             Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
         }
         *self.output += "'";
@@ -583,7 +583,7 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         }
 
         let err;
-        if let Some(DType::Nominal(variants)) = self.get_current_dtype_mut() {
+        if let Some(&mut DType::Nominal(ref mut variants)) = self.get_current_dtype_mut() {
             variants.insert(variant);
             err = false;
         } else {
