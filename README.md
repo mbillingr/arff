@@ -104,7 +104,7 @@ Valid types for the `Row` data format are
 
 #### Nested Columns
 
-It is possible to have nested sequences as rows. These will be flattened
+It is possible to have nested sequences in rows. These will be flattened
 during serialization. For example, `[[i32; 2]; 2]`,
 `(i32, [i32; 2], i32)`, and `[i32; 4]` result in equivalent
 serializations.
@@ -127,7 +127,41 @@ the rules above.
  
 ### Deserialization
 
-TODO
+#### Data Set Types
+
+If `Row` is a valid type that can be deserialized into a data row, the
+following types can be deserialized from ARFF:
+
+  - Vectors: `Vec<Row>`
+  - Arrays: `[Row; N]`
+  - Tuples: `(Row, Row, Row, ...)`
+
+The data set name is ignored during deserialization. It is possible to
+wrap above types in a newtype struct, but the name of the type is not
+checked against the data set.
+
+#### Data Row Types
+
+Valid types for deserializing a data row are
+
+  - Structures: `#[derive(Deserialize)] sruct Row { ... }`
+  - Arrays: `type Row<T> = [T; N];`
+  - Tuples: `type Row = (i32, f64, Sting, bool, ...);`
+  - Vectors: `type Row<T> = Vec<T>;`
+
+#### Nested Columns
+
+Nested sequences will be flattened, similar to serialization.
+
+#### Value Types
+
+The deserializer ignores the ARFF type description and tries to
+parse each value as the rust type expected by the targetted
+data structure. If this is not possible an `Error` is returned.
+
+Columns that can contain missing values need to be wrapped in an
+`Option`, so that an encoded `?` is parsed as `None`.
+
 
 ## License
 
