@@ -36,6 +36,9 @@ pub enum Error {
     NumericRange(TextPos, i64, i64),
     NumericOverflow(TextPos),
     Utf8Error(std::str::Utf8Error),
+
+    InvalidColumnType,
+    WrongNominalValue(String),
 }
 
 impl ser::Error for Error {
@@ -72,7 +75,9 @@ impl std::error::Error for Error {
             Error::NumericOverflow(_) => "value too large for u64",
             Error::ExpectedSequenceType => "attempt to parse data set as a non-sequence type",
             Error::ExpectedFloatValue(_) => "invalid floating point number",
-            Error::Utf8Error(_) => "invalid UTF-8 string"
+            Error::Utf8Error(_) => "invalid UTF-8 string",
+            Error::InvalidColumnType => "column type not understood",
+            Error::WrongNominalValue(_) => "wrong nominal value",
         }
     }
 }

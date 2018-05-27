@@ -294,86 +294,56 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
         where
             V: Visitor<'de>,
     {
-        let pos = self.parser.pos();
-        let value = self.parser.parse_signed()?;
-        match value {
-            -128...127 => visitor.visit_i8(value as i8),
-            _ => Err(Error::NumericRange(pos, -128, 127)),
-        }
+        visitor.visit_i8(self.parser.parse_i8()?)
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        let pos = self.parser.pos();
-        let value = self.parser.parse_signed()?;
-        match value {
-            I16_MIN...I16_MAX => visitor.visit_i16(value as i16),
-            _ => Err(Error::NumericRange(pos, I16_MIN, I16_MAX)),
-        }
+        visitor.visit_i16(self.parser.parse_i16()?)
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        let pos = self.parser.pos();
-        let value = self.parser.parse_signed()?;
-        match value {
-            I32_MIN...I32_MAX => visitor.visit_i32(value as i32),
-            _ => Err(Error::NumericRange(pos, I32_MIN, I32_MAX)),
-        }
+        visitor.visit_i32(self.parser.parse_i32()?)
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_i64(self.parser.parse_signed()?)
+        visitor.visit_i64(self.parser.parse_i64()?)
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        let pos = self.parser.pos();
-        let value = self.parser.parse_unsigned()?;
-        match value {
-            0...255 => visitor.visit_u8(value as u8),
-            _ => Err(Error::NumericRange(pos, 0, 255)),
-        }
+        visitor.visit_u8(self.parser.parse_u8()?)
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        let pos = self.parser.pos();
-        let value = self.parser.parse_unsigned()?;
-        match value {
-            0...U16_MAX => visitor.visit_u16(value as u16),
-            _ => Err(Error::NumericRange(pos, 0, U16_MAX as i64)),
-        }
+        visitor.visit_u16(self.parser.parse_u16()?)
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        let pos = self.parser.pos();
-        let value = self.parser.parse_unsigned()?;
-        match value {
-            0...U32_MAX => visitor.visit_u32(value as u32),
-            _ => Err(Error::NumericRange(pos, 0, U32_MAX as i64)),
-        }
+        visitor.visit_u32(self.parser.parse_u32()?)
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_u64(self.parser.parse_unsigned()?)
+        visitor.visit_u64(self.parser.parse_u64()?)
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>

@@ -64,11 +64,13 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+mod dynamic;
 mod error;
 mod ser;
 mod de;
 mod parser;
 
+pub use dynamic::{Column, DataSet, Value};
 pub use error::{Error, Result};
 pub use ser::{to_string, Serializer};
 pub use de::{from_str, Deserializer};

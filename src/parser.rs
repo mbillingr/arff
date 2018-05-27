@@ -183,15 +183,20 @@ impl<'a> Parser<'a> {
     }
 
     /// parse an unquoted string
-    fn parse_unquoted_string(&mut self) -> Result<String> {
+    pub fn parse_unquoted_string(&mut self) -> Result<String> {
         let mut s = Vec::new();
         loop {
             match self.current_char {
-                b'0' | b' ' | b'\t' | b'\n' | b',' => return Ok(String::from_utf8(s)?),
+                b'0' | b' ' | b'\t' | b'\n' | b',' => break,
                 ch => s.push(ch),
             }
             self.advance();
+
+            if self.is_eof() {
+                break
+            }
         }
+        Ok(String::from_utf8(s)?)
     }
 
     /// skip spaces, if a `%`  character is encountered, the remaining line is skipped
@@ -206,7 +211,16 @@ impl<'a> Parser<'a> {
     pub fn parse_attribute(&mut self) -> Result<Attribute> {
         let name = self.parse_string()?;
         self.skip_spaces();
-        let dtype = self.parse_unquoted_string()?;
+
+        let mut dtype = Vec::new();
+        loop {
+            match self.current_char {
+                b'%' | b'\n' => break,
+                ch => dtype.push(ch),
+            }
+            self.advance();
+        }
+        let dtype = String::from_utf8(dtype)?;
         Ok(Attribute {name, dtype})
     }
 
@@ -311,7 +325,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a unsigned integer value
-    pub fn parse_unsigned(&mut self) -> Result<u64> {
+    pub fn parse_u64(&mut self) -> Result<u64> {
         let pos = self.pos();
 
         let mut value = match self.current_char {
@@ -335,7 +349,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a signed integer value
-    pub fn parse_signed(&mut self) -> Result<i64> {
+    pub fn parse_i64(&mut self) -> Result<i64> {
         let pos = self.pos();
 
         let negative = match self.current_char {
@@ -344,7 +358,7 @@ impl<'a> Parser<'a> {
             _ => false,
         };
 
-        match (negative, self.parse_unsigned()) {
+        match (negative, self.parse_u64()) {
             (_, Err(Error::ExpectedUnsignedValue(_))) => Err(Error::ExpectedIntegerValue(pos)),
             (_, Err(e)) => Err(e),
             (true, Ok(I64_MINABS)) => Ok(i64::MIN),
@@ -375,3 +389,41 @@ impl<'a> Parser<'a> {
         }
     }
 }
+
+macro_rules! impl_parse_primitive_unsigned {
+    ($name:ident, $typ:ident, $min:expr, $max:expr) => (
+        impl<'a> Parser<'a> {
+            pub fn $name(&mut self) -> Result<$typ> {
+                let pos = self.pos();
+                let value = self.parse_u64()?;
+                match value {
+                    $min...$max => Ok(value as $typ),
+                    _ => Err(Error::NumericRange(pos, $min as i64, $max as i64)),
+                }
+            }
+        }
+    )
+}
+
+impl_parse_primitive_unsigned!(parse_u8, u8, 0, 255);
+impl_parse_primitive_unsigned!(parse_u16, u16, 0, U16_MAX);
+impl_parse_primitive_unsigned!(parse_u32, u32, 0, U32_MAX);
+
+macro_rules! impl_parse_primitive_signed {
+    ($name:ident, $typ:ident, $min:expr, $max:expr) => (
+        impl<'a> Parser<'a> {
+            pub fn $name(&mut self) -> Result<$typ> {
+                let pos = self.pos();
+                let value = self.parse_i64()?;
+                match value {
+                    $min...$max => Ok(value as $typ),
+                    _ => Err(Error::NumericRange(pos, $min, $max)),
+                }
+            }
+        }
+    )
+}
+
+impl_parse_primitive_signed!(parse_i8, i8, -128, 127);
+impl_parse_primitive_signed!(parse_i16, i16, I16_MIN, I16_MAX);
+impl_parse_primitive_signed!(parse_i32, i32, I32_MIN, I32_MAX);
