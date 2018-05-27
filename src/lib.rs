@@ -73,7 +73,7 @@ mod parser;
 pub use dynamic::{Column, DataSet, Value};
 pub use error::{Error, Result};
 pub use ser::{to_string, Serializer};
-pub use de::{from_str, Deserializer};
+pub use de::{flat_from_str, from_str, Deserializer};
 
 
 #[cfg(test)]

@@ -29,6 +29,21 @@ pub fn from_str<'a, T>(s: &'a str) -> Result<T>
     Ok(t)
 }
 
+/// Deserialize an instance of sequence type `T` from an ARFF formatted string, to obtain a flat
+/// representation of the data.
+pub fn flat_from_str<'a, T>(s: &'a str) -> Result<T>
+    where
+        T: Deserialize<'a>,
+{
+    let mut deserializer = FlatDeserializer::from_str(s)?;
+
+    let t = T::deserialize(&mut deserializer)?;
+
+    deserializer.parser.parse_eof()?;
+
+    Ok(t)
+}
+
 /// Deserialize an ARFF data set into a Rust data structure.
 pub struct Deserializer<'de> {
     parser: Parser<'de>,
@@ -612,6 +627,260 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataColsTuple<'a, 'b, 'de> {
 }
 
 
+
+/// Deserialize an ARFF data set into a flat Rust sequence.
+pub struct FlatDeserializer<'de> {
+    parser: Parser<'de>,
+    header: Header,
+}
+
+impl<'de> FlatDeserializer<'de> {
+    pub fn from_str(input: &'de str) -> Result<Self> {
+        let mut parser = Parser::new(input);
+        let header = parser.parse_header()?;
+
+        Ok(FlatDeserializer {
+            parser,
+            header,
+        })
+    }
+}
+
+impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
+    type Error = Error;
+
+    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
+        where V:
+        Visitor<'de>,
+    {
+        unimplemented!()
+    }
+
+    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_bool(self.parser.parse_bool()?)
+    }
+
+    fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_i8(self.parser.parse_i8()?)
+    }
+
+    fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_i16(self.parser.parse_i16()?)
+    }
+
+    fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_i32(self.parser.parse_i32()?)
+    }
+
+    fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_i64(self.parser.parse_i64()?)
+    }
+
+    fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_u8(self.parser.parse_u8()?)
+    }
+
+    fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_u16(self.parser.parse_u16()?)
+    }
+
+    fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_u32(self.parser.parse_u32()?)
+    }
+
+    fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_u64(self.parser.parse_u64()?)
+    }
+
+    fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_f32(self.parser.parse_float()? as f32)
+    }
+
+    fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_f64(self.parser.parse_float()?)
+    }
+
+    fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        unimplemented!()
+    }
+
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_str(&self.parser.parse_string()?)
+    }
+
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        self.deserialize_str(visitor)
+    }
+
+    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        Err(Error::ExpectedSequenceType)
+    }
+
+    fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        Err(Error::ExpectedSequenceType)
+    }
+
+    fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        Err(Error::ExpectedSequenceType)
+    }
+
+    fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        Err(Error::ExpectedSequenceType)
+    }
+
+    fn deserialize_unit_struct<V>(self, _name: &'static str, _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        Err(Error::ExpectedSequenceType)
+    }
+
+    fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_newtype_struct(self)
+    }
+
+    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        visitor.visit_seq(FlatValues::new(self))
+    }
+
+    fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        unimplemented!()
+    }
+
+    fn deserialize_tuple_struct<V>(self, _name: &'static str, _len: usize, visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        unimplemented!()
+    }
+
+    fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        Err(Error::ExpectedSequenceType)
+    }
+
+    fn deserialize_struct<V>(self, _name: &'static str, _fields: &'static [&'static str], _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        Err(Error::ExpectedSequenceType)
+    }
+
+    fn deserialize_enum<V>(self, _name: &'static str, _variants: &'static [&'static str], _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        Err(Error::ExpectedSequenceType)
+    }
+
+    fn deserialize_identifier<V>(self, _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        panic!("We should not be here... this must be a bug!")
+    }
+
+    fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value>
+        where
+            V: Visitor<'de>,
+    {
+        unimplemented!()
+    }
+}
+
+struct FlatValues<'a, 'de: 'a> {
+    de: &'a mut FlatDeserializer<'de>,
+}
+
+impl<'a, 'de> FlatValues<'a, 'de> {
+    fn new(de: &'a mut FlatDeserializer<'de>) -> Self {
+        FlatValues { de }
+    }
+}
+
+impl<'de, 'a> SeqAccess<'de> for FlatValues<'a, 'de> {
+    type Error = Error;
+
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
+        where
+            T: DeserializeSeed<'de>,
+    {
+        if self.de.parser.is_eof() {
+            return Ok(None)
+        }
+
+        let value = seed.deserialize(&mut *self.de)?;
+        self.de.parser.parse_any_delimiter()?;
+        Ok(Some(value))
+    }
+}
+
+
 #[test]
 fn test_struct_data() {
     #[derive(Debug, Deserialize, PartialEq)]
@@ -877,4 +1146,22 @@ fn test_case() {
 
     let res: [[f32; 1];1] = from_str(input).unwrap();
     assert_eq!(res, [[1.0]]);
+}
+
+#[test]
+fn test_flat() {
+
+    let input = "@RELATION Data
+
+@ATTRIBUTE a NUMERIC
+@ATTRIBUTE b NUMERIC
+@ATTRIBUTE c NUMERIC
+@ATTRIBUTE d NUMERIC
+
+@DATA
+42, 9, 8, 7
+7, 5, 3, 2";
+
+    let res: Vec<u8> = flat_from_str(input).unwrap();
+    assert_eq!(res, vec![42, 9, 8, 7, 7, 5, 3, 2]);
 }

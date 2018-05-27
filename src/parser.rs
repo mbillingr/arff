@@ -308,6 +308,20 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn parse_any_delimiter(&mut self) -> Result<()> {
+        self.ignore_comment();
+        match self.current_char {
+            0 => Ok(()),
+            b'\n' => self.consume_newline(),
+            b',' | b'\t' => {
+                self.advance();
+                self.skip_spaces();
+                Ok(())
+            },
+            _ => return Err(Error::Expected(self.pos, "`,`, `\t`, newline, or end of input")),
+        }
+    }
+
     /// Check for a missing value. This cannot fail.
     pub fn parse_is_missing(&mut self) -> bool {
         self.consume_optional(b'?')
