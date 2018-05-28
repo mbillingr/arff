@@ -9,7 +9,7 @@
 
 ARFF file format serializer and deserializer
 
-An ARFF (Attribute-Relation File Format) file is an ASCII text file
+An [ARFF (Attribute-Relation File Format)](http://weka.wikispaces.com/ARFF) file is an ASCII text file
 that describes a list of instances sharing a set of attributes. Its
 main use is in data science to store tabular data: rows are 
 instances and columns are attributes. Meta data such as attribute 
