@@ -631,17 +631,15 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataColsTuple<'a, 'b, 'de> {
 /// Deserialize an ARFF data set into a flat Rust sequence.
 pub struct FlatDeserializer<'de> {
     parser: Parser<'de>,
-    header: Header,
 }
 
 impl<'de> FlatDeserializer<'de> {
     pub fn from_str(input: &'de str) -> Result<Self> {
         let mut parser = Parser::new(input);
-        let header = parser.parse_header()?;
+        parser.parse_header()?;
 
         Ok(FlatDeserializer {
             parser,
-            header,
         })
     }
 }
@@ -803,14 +801,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
         visitor.visit_seq(FlatValues::new(self))
     }
 
-    fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
+    fn deserialize_tuple<V>(self, _len: usize, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
         unimplemented!()
     }
 
-    fn deserialize_tuple_struct<V>(self, _name: &'static str, _len: usize, visitor: V) -> Result<V::Value>
+    fn deserialize_tuple_struct<V>(self, _name: &'static str, _len: usize, _visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
