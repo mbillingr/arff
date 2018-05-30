@@ -195,10 +195,12 @@ impl<T> ColumnData<T> {
         s.make_ascii_uppercase();
 
         match &s[..4] {
-            "NUME" => Ok(ColumnData::new_numeric()),
+            "NUME" |
+            "REAL" |
+            "INTE" => Ok(ColumnData::new_numeric()),
             "STRI" => Ok(ColumnData::new_string()),
             "DATE" => ColumnData::new_date(&s[4..]),
-            _ => Err(Error::InvalidColumnType)
+            _ => Err(Error::InvalidColumnType(s))
         }
     }
 

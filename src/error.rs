@@ -37,7 +37,7 @@ pub enum Error {
     NumericOverflow(TextPos),
     Utf8Error(std::str::Utf8Error),
 
-    InvalidColumnType,
+    InvalidColumnType(String),
     WrongNominalValue(String),
 }
 
@@ -76,7 +76,7 @@ impl std::error::Error for Error {
             Error::ExpectedSequenceType => "attempt to parse data set as a non-sequence type",
             Error::ExpectedFloatValue(_) => "invalid floating point number",
             Error::Utf8Error(_) => "invalid UTF-8 string",
-            Error::InvalidColumnType => "column type not understood",
+            Error::InvalidColumnType(_) => "column type not understood",
             Error::WrongNominalValue(_) => "wrong nominal value",
         }
     }
