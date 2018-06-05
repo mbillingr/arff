@@ -1,6 +1,6 @@
 
 use super::{Error, Result};
-use parser::{self, Parser};
+use parser::{self, DType, Parser};
 
 
 /// A dynamically typed representation of an ARFF data set
@@ -153,7 +153,7 @@ impl<T: Numeric> Column<T> {
     fn from_attr(attr: parser::Attribute) -> Result<Self> {
         Ok(Column {
             name: attr.name,
-            data: ColumnData::new_from_string(attr.dtype)?,
+            data: ColumnData::new_from_dtype(attr.dtype),
         })
     }
 
@@ -187,20 +187,11 @@ impl<T: Numeric> Column<T> {
 }
 
 impl<T> ColumnData<T> {
-    fn new_from_string(mut s: String) -> Result<Self>{
-        if s.starts_with('{') && s.ends_with('}') {
-            return ColumnData::new_nominal(&s[1..s.len()-1])
-        }
-
-        s.make_ascii_uppercase();
-
-        match &s[..4] {
-            "NUME" |
-            "REAL" |
-            "INTE" => Ok(ColumnData::new_numeric()),
-            "STRI" => Ok(ColumnData::new_string()),
-            "DATE" => ColumnData::new_date(&s[4..]),
-            _ => Err(Error::InvalidColumnType(s))
+    fn new_from_dtype(dt: DType) -> Self {
+        match dt {
+            DType::Numeric => ColumnData::new_numeric(),
+            DType::String => ColumnData::new_string(),
+            DType::Nominal(names) => ColumnData::new_nominal(names),
         }
     }
 
@@ -216,16 +207,11 @@ impl<T> ColumnData<T> {
         }
     }
 
-    fn new_date(_fmt: &str) -> Result<Self> {
-        unimplemented!()
-    }
-
-    fn new_nominal(s: &str) -> Result<Self> {
-        let categories = s.split(',').map(|s| s.trim().to_owned()).collect();
-        Ok(ColumnData::Nominal {
+    fn new_nominal(categories: Vec<String>) -> Self {
+        ColumnData::Nominal {
             categories,
             values: Vec::new(),
-        })
+        }
     }
 }
 

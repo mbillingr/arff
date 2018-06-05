@@ -39,6 +39,7 @@ pub enum Error {
 
     InvalidColumnType(String),
     WrongNominalValue(String),
+    UnsupportedColumnType(String),
 }
 
 impl ser::Error for Error {
@@ -77,6 +78,7 @@ impl std::error::Error for Error {
             Error::ExpectedFloatValue(_) => "invalid floating point number",
             Error::Utf8Error(_) => "invalid UTF-8 string",
             Error::InvalidColumnType(_) => "column type not understood",
+            Error::UnsupportedColumnType(_) => "column type not supported",
             Error::WrongNominalValue(_) => "wrong nominal value",
         }
     }

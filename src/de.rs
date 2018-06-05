@@ -11,7 +11,7 @@
 use serde::de::{self, Deserialize, DeserializeSeed, Visitor, SeqAccess,
                 MapAccess, IntoDeserializer};
 
-use super::homogenous::ArffArray;
+use super::arff_array::ArffArray;
 use super::error::{Error, Result};
 use super::parser::*;
 
@@ -47,7 +47,7 @@ pub fn flat_from_str<'a, T>(s: &'a str) -> Result<T>
 
 /// Deserialize an instance of `ArffArray<T>` from an ARFF formatted string, to obtain a flat
 /// representation of the data with column meta information.
-pub fn arrray_from_str<'a, T>(s: &'a str) -> Result<ArffArray<T>>
+pub fn array_from_str<'a, T>(s: &'a str) -> Result<ArffArray<T>>
     where
         T: Deserialize<'a>,
 {
@@ -57,10 +57,7 @@ pub fn arrray_from_str<'a, T>(s: &'a str) -> Result<ArffArray<T>>
 
     deserializer.parser.parse_eof()?;
 
-    Ok(ArffArray {
-        columns: deserializer.header.into(),  // todo: needs impl
-        data,
-    })
+    ArffArray::new(deserializer.header, data)
 }
 
 /// Deserialize an ARFF data set into a Rust data structure.
@@ -651,6 +648,7 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataColsTuple<'a, 'b, 'de> {
 pub struct FlatDeserializer<'de> {
     parser: Parser<'de>,
     header: Header,
+    current_col: usize,
 }
 
 impl<'de> FlatDeserializer<'de> {
@@ -661,6 +659,7 @@ impl<'de> FlatDeserializer<'de> {
         Ok(FlatDeserializer {
             parser,
             header,
+            current_col: 0,
         })
     }
 }
@@ -686,70 +685,170 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
         where
             V: Visitor<'de>,
     {
-        visitor.visit_i8(self.parser.parse_i8()?)
+        match self.header.attrs[self.current_col].dtype {
+            DType::Numeric => visitor.visit_i8(self.parser.parse_i8()?),
+            DType::Nominal(ref names) => {
+                let name = self.parser.parse_string()?;
+                match names.iter().position(|n| n == &name) {
+                    Some(idx) => visitor.visit_i8(idx as i8),
+                    None => Err(Error::WrongNominalValue(name))
+                }
+            }
+            DType::String => Err(Error::UnsupportedColumnType("String".to_owned())),
+        }
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_i16(self.parser.parse_i16()?)
+        match self.header.attrs[self.current_col].dtype {
+            DType::Numeric => visitor.visit_i16(self.parser.parse_i16()?),
+            DType::Nominal(ref names) => {
+                let name = self.parser.parse_string()?;
+                match names.iter().position(|n| n == &name) {
+                    Some(idx) => visitor.visit_i16(idx as i16),
+                    None => Err(Error::WrongNominalValue(name))
+                }
+            }
+            DType::String => Err(Error::UnsupportedColumnType("String".to_owned())),
+        }
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_i32(self.parser.parse_i32()?)
+        match self.header.attrs[self.current_col].dtype {
+            DType::Numeric => visitor.visit_i32(self.parser.parse_i32()?),
+            DType::Nominal(ref names) => {
+                let name = self.parser.parse_string()?;
+                match names.iter().position(|n| n == &name) {
+                    Some(idx) => visitor.visit_i32(idx as i32),
+                    None => Err(Error::WrongNominalValue(name))
+                }
+            }
+            DType::String => Err(Error::UnsupportedColumnType("String".to_owned())),
+        }
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_i64(self.parser.parse_i64()?)
+        match self.header.attrs[self.current_col].dtype {
+            DType::Numeric => visitor.visit_i64(self.parser.parse_i64()?),
+            DType::Nominal(ref names) => {
+                let name = self.parser.parse_string()?;
+                match names.iter().position(|n| n == &name) {
+                    Some(idx) => visitor.visit_i64(idx as i64),
+                    None => Err(Error::WrongNominalValue(name))
+                }
+            }
+            DType::String => Err(Error::UnsupportedColumnType("String".to_owned())),
+        }
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_u8(self.parser.parse_u8()?)
+        match self.header.attrs[self.current_col].dtype {
+            DType::Numeric => visitor.visit_u8(self.parser.parse_u8()?),
+            DType::Nominal(ref names) => {
+                let name = self.parser.parse_string()?;
+                match names.iter().position(|n| n == &name) {
+                    Some(idx) => visitor.visit_u8(idx as u8),
+                    None => Err(Error::WrongNominalValue(name))
+                }
+            }
+            DType::String => Err(Error::UnsupportedColumnType("String".to_owned())),
+        }
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_u16(self.parser.parse_u16()?)
+        match self.header.attrs[self.current_col].dtype {
+            DType::Numeric => visitor.visit_u16(self.parser.parse_u16()?),
+            DType::Nominal(ref names) => {
+                let name = self.parser.parse_string()?;
+                match names.iter().position(|n| n == &name) {
+                    Some(idx) => visitor.visit_u16(idx as u16),
+                    None => Err(Error::WrongNominalValue(name))
+                }
+            }
+            DType::String => Err(Error::UnsupportedColumnType("String".to_owned())),
+        }
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_u32(self.parser.parse_u32()?)
+        match self.header.attrs[self.current_col].dtype {
+            DType::Numeric => visitor.visit_u32(self.parser.parse_u32()?),
+            DType::Nominal(ref names) => {
+                let name = self.parser.parse_string()?;
+                match names.iter().position(|n| n == &name) {
+                    Some(idx) => visitor.visit_u32(idx as u32),
+                    None => Err(Error::WrongNominalValue(name))
+                }
+            }
+            DType::String => Err(Error::UnsupportedColumnType("String".to_owned())),
+        }
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_u64(self.parser.parse_u64()?)
+        match self.header.attrs[self.current_col].dtype {
+            DType::Numeric => visitor.visit_u64(self.parser.parse_u64()?),
+            DType::Nominal(ref names) => {
+                let name = self.parser.parse_string()?;
+                match names.iter().position(|n| n == &name) {
+                    Some(idx) => visitor.visit_u64(idx as u64),
+                    None => Err(Error::WrongNominalValue(name))
+                }
+            }
+            DType::String => Err(Error::UnsupportedColumnType("String".to_owned())),
+        }
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_f32(self.parser.parse_float()? as f32)
+        match self.header.attrs[self.current_col].dtype {
+            DType::Numeric => visitor.visit_f32(self.parser.parse_float()? as f32),
+            DType::Nominal(ref names) => {
+                let name = self.parser.parse_string()?;
+                match names.iter().position(|n| n == &name) {
+                    Some(idx) => visitor.visit_f32(idx as f32),
+                    None => Err(Error::WrongNominalValue(name))
+                }
+            }
+            DType::String => Err(Error::UnsupportedColumnType("String".to_owned())),
+        }
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
         where
             V: Visitor<'de>,
     {
-        visitor.visit_f64(self.parser.parse_float()?)
+        match self.header.attrs[self.current_col].dtype {
+            DType::Numeric => visitor.visit_f64(self.parser.parse_float()?),
+            DType::Nominal(ref names) => {
+                let name = self.parser.parse_string()?;
+                match names.iter().position(|n| n == &name) {
+                    Some(idx) => visitor.visit_f64(idx as f64),
+                    None => Err(Error::WrongNominalValue(name))
+                }
+            }
+            DType::String => Err(Error::UnsupportedColumnType("String".to_owned())),
+        }
     }
 
     fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value>
@@ -895,6 +994,9 @@ impl<'de, 'a> SeqAccess<'de> for FlatValues<'a, 'de> {
 
         let value = seed.deserialize(&mut *self.de)?;
         self.de.parser.parse_any_delimiter()?;
+
+        self.de.current_col = (self.de.current_col + 1) % self.de.header.attrs.len();
+
         Ok(Some(value))
     }
 }
@@ -1183,4 +1285,22 @@ fn test_flat() {
 
     let res: Vec<u8> = flat_from_str(input).unwrap();
     assert_eq!(res, vec![42, 9, 8, 7, 7, 5, 3, 2]);
+}
+
+#[test]
+fn test_array() {
+
+    let input = "@RELATION Data
+
+@ATTRIBUTE a NUMERIC
+@ATTRIBUTE b NUMERIC
+@ATTRIBUTE c NUMERIC
+@ATTRIBUTE d {yay, nay}
+
+@DATA
+42, 9, 8, nay
+7, 5, 3, yay";
+
+    let res: ArffArray<u8> = array_from_str(input).unwrap();
+    assert_eq!(res.raw_data(), &[42, 9, 8, 1, 7, 5, 3, 0]);
 }

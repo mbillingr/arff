@@ -24,18 +24,18 @@ pub const I64_MAX: u64 = i64::MAX as u64;
 pub const I64_MINABS: u64 = I64_MAX + 1;
 
 
-/*#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum DType {
     Numeric,
     String,
     //Date(String),
     Nominal(Vec<String>),
-}*/
+}
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Attribute {
     pub name: String,
-    pub dtype: String,  // for now do not parse the data type
+    pub dtype: DType,
 }
 
 #[derive(Debug)]
@@ -212,16 +212,34 @@ impl<'a> Parser<'a> {
         let name = self.parse_string()?;
         self.skip_spaces();
 
-        let mut dtype = Vec::new();
+        let mut s = Vec::new();
         loop {
             match self.current_char {
                 b'%' | b'\n' => break,
-                ch => dtype.push(ch),
+                ch => s.push(ch),
             }
             self.advance();
         }
-        let dtype = String::from_utf8(dtype)?;
-        Ok(Attribute {name, dtype})
+        let mut s = String::from_utf8(s)?;
+
+        if s.starts_with('{') && s.ends_with('}') {
+            let categories = s[1..s.len()-1].split(',').map(|s| s.trim().to_owned()).collect();
+            return Ok(Attribute {
+                name,
+                dtype: DType::Nominal(categories)
+            })
+        }
+
+        s.make_ascii_uppercase();
+
+        match &s[..4] {
+            "NUME" |
+            "REAL" |
+            "INTE" => Ok(Attribute {name, dtype: DType::Numeric}),
+            "STRI" => Ok(Attribute {name, dtype: DType::String}),
+            "DATE" => Err(Error::UnsupportedColumnType(s)),
+            _ => Err(Error::InvalidColumnType(s))
+        }
     }
 
     /// parse ARFF header

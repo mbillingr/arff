@@ -1,25 +1,29 @@
+//! This module provides a flat homogenous representation of an Arff data set. The purpose of this
+//! representation is to allow easy access to the data in form of a `Vec<T>`, where the user
+//! specifies `T`. It includes additional type information about columns, that specialized
+//! algoritms may use. The contiguous and homogenous representation can be easily converted into an
+//! ndarray for flexibility.
 
 use num_traits::ToPrimitive;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum ColumnType {
-    Numeric,
-    String(Vec<String>),
-    Nominal(Vec<String>)
-}
+use error::{Result};
+use parser::{Attribute, DType, Header};
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct ColumnInfo {
-    name: String,
-    dtype: ColumnType,
-}
-
+/// A contiguos and homogenous representation of an Arff data set with addotional column meta
+/// information.
 pub struct ArffArray<T> {
-    columns: Vec<ColumnInfo>,
+    columns: Vec<Attribute>,
     data: Vec<T>,
 }
 
 impl<T> ArffArray<T> {
+    pub fn new(header: Header, data: Vec<T>) -> Result<Self> {
+        Ok(ArffArray {
+            columns: header.attrs,
+            data
+        })
+    }
+
     pub fn at(&self, row: usize, col: usize) -> &T {
         &self.data[row * self.n_cols() + col]
     }
@@ -32,6 +36,15 @@ impl<T> ArffArray<T> {
     #[inline(always)]
     pub fn n_rows(&self) -> usize {
         self.data.len() / self.n_cols()
+    }
+
+    #[inline(always)]
+    pub fn raw_data(&self) -> &[T] {
+        self.data.as_ref()
+    }
+
+    pub fn consume(self) -> (Vec<Attribute>, Vec<T>) {
+        (self.columns, self.data)
     }
 }
 
@@ -93,14 +106,16 @@ impl<T: Clone> ArffArray<T> {
 
 impl<T: Copy + ToPrimitive> ArffArray<T>
 {
+    /// Convert the numeric representation of a Nominal value at `row`/`col` into its
+    /// corresponding name. Returns None if the value is Numeric.
     pub fn str_at(&self, row: usize, col: usize) -> Option<&str> {
         match self.columns[col].dtype {
-            ColumnType::Numeric => None,
-            ColumnType::String(ref names) |
-            ColumnType::Nominal(ref names) => {
+            DType::Numeric => None,
+            DType::Nominal(ref names) => {
                 let value: usize = (self.at(row, col)).to_usize().unwrap();
                 Some(&names[value])
             }
+            DType::String => unreachable!()
         }
     }
 }
@@ -109,17 +124,17 @@ impl<T: Copy + ToPrimitive> ArffArray<T>
 fn test_array() {
     let array:  ArffArray<f64> = ArffArray {
         columns: vec![
-            ColumnInfo {
+            Attribute {
                 name: "a".to_owned(),
-                dtype: ColumnType::Numeric,
+                dtype: DType::Numeric,
             },
-            ColumnInfo {
+            Attribute {
                 name: "b".to_owned(),
-                dtype: ColumnType::String(vec!["here".to_owned(), "there".to_owned()]),
+                dtype: DType::Nominal(vec!["here".to_owned(), "there".to_owned()]),
             },
-            ColumnInfo {
+            Attribute {
                 name: "c".to_owned(),
-                dtype: ColumnType::Nominal(vec!["maybe".to_owned(), "perhaps".to_owned()]),
+                dtype: DType::Nominal(vec!["maybe".to_owned(), "perhaps".to_owned()]),
             }
         ],
         data: vec![1.0, 0.0, 1.0, 3.1, 1.0, 0.0, 9.9, 0.0, 0.0, 5.2, 1.0, 1.0],
@@ -152,5 +167,4 @@ fn test_array() {
     assert_eq!(bc.n_rows(), 4);
     assert_eq!(bc.columns[..], array.columns[1..]);
     assert_eq!(bc.data, [0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0]);
-
 }
