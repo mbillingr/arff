@@ -58,12 +58,14 @@
 //! }
 //! ```
 
+extern crate num_traits;
 extern crate serde;
 
 #[cfg(test)]
 #[macro_use]
 extern crate serde_derive;
 
+mod homogenous;
 mod dynamic;
 mod error;
 mod ser;

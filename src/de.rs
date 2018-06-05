@@ -11,6 +11,7 @@
 use serde::de::{self, Deserialize, DeserializeSeed, Visitor, SeqAccess,
                 MapAccess, IntoDeserializer};
 
+use super::homogenous::ArffArray;
 use super::error::{Error, Result};
 use super::parser::*;
 
@@ -42,6 +43,24 @@ pub fn flat_from_str<'a, T>(s: &'a str) -> Result<T>
     deserializer.parser.parse_eof()?;
 
     Ok(t)
+}
+
+/// Deserialize an instance of `ArffArray<T>` from an ARFF formatted string, to obtain a flat
+/// representation of the data with column meta information.
+pub fn arrray_from_str<'a, T>(s: &'a str) -> Result<ArffArray<T>>
+    where
+        T: Deserialize<'a>,
+{
+    let mut deserializer = FlatDeserializer::from_str(s)?;
+
+    let data = Vec::<T>::deserialize(&mut deserializer)?;
+
+    deserializer.parser.parse_eof()?;
+
+    Ok(ArffArray {
+        columns: deserializer.header.into(),  // todo: needs impl
+        data,
+    })
 }
 
 /// Deserialize an ARFF data set into a Rust data structure.
@@ -631,15 +650,17 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataColsTuple<'a, 'b, 'de> {
 /// Deserialize an ARFF data set into a flat Rust sequence.
 pub struct FlatDeserializer<'de> {
     parser: Parser<'de>,
+    header: Header,
 }
 
 impl<'de> FlatDeserializer<'de> {
     pub fn from_str(input: &'de str) -> Result<Self> {
         let mut parser = Parser::new(input);
-        parser.parse_header()?;
+        let header = parser.parse_header()?;
 
         Ok(FlatDeserializer {
             parser,
+            header,
         })
     }
 }
