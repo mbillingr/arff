@@ -9,7 +9,7 @@ use num_traits::ToPrimitive;
 use error::{Result};
 use parser::{Attribute, DType, Header};
 
-/// A contiguos and homogenous representation of an Arff data set with addotional column meta
+/// A contiguos and homogenous representation of an Arff data set with additional column meta
 /// information.
 pub struct ArffArray<T> {
     columns: Vec<Attribute>,
@@ -41,6 +41,11 @@ impl<T> ArffArray<T> {
     #[inline(always)]
     pub fn raw_data(&self) -> &[T] {
         self.data.as_ref()
+    }
+
+    #[inline(always)]
+    pub fn raw_attributes(&self) -> &[Attribute] {
+        self.columns.as_ref()
     }
 
     pub fn consume(self) -> (Vec<Attribute>, Vec<T>) {
