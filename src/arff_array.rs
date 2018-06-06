@@ -11,6 +11,7 @@ use parser::{Attribute, DType, Header};
 
 /// A contiguos and homogenous representation of an Arff data set with additional column meta
 /// information.
+#[derive(Debug)]
 pub struct ArffArray<T> {
     columns: Vec<Attribute>,
     data: Vec<T>,

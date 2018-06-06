@@ -8,7 +8,7 @@
 
 //! Deserialize ARFF formatted text to a Rust data structure.
 
-use serde::de::{self, Deserialize, DeserializeSeed, Visitor, SeqAccess,
+use serde::de::{self, Deserialize, DeserializeOwned, DeserializeSeed, Visitor, SeqAccess,
                 MapAccess, IntoDeserializer};
 
 use super::arff_array::ArffArray;
@@ -47,9 +47,9 @@ pub fn flat_from_str<'a, T>(s: &'a str) -> Result<T>
 
 /// Deserialize an instance of `ArffArray<T>` from an ARFF formatted string, to obtain a flat
 /// representation of the data with column meta information.
-pub fn array_from_str<'a, T>(s: &'a str) -> Result<ArffArray<T>>
+pub fn array_from_str<T>(s: &str) -> Result<ArffArray<T>>
     where
-        T: Deserialize<'a>,
+        T: DeserializeOwned,
 {
     let mut deserializer = FlatDeserializer::from_str(s)?;
 
