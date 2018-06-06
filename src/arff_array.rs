@@ -11,15 +11,15 @@ use parser::{Attribute, DType, Header};
 
 /// A contiguos and homogenous representation of an Arff data set with additional column meta
 /// information.
-#[derive(Debug)]
-pub struct ArffArray<T> {
+#[derive(Debug, Clone)]
+pub struct Array<T> {
     columns: Vec<Attribute>,
     data: Vec<T>,
 }
 
-impl<T> ArffArray<T> {
+impl<T> Array<T> {
     pub fn new(header: Header, data: Vec<T>) -> Result<Self> {
-        Ok(ArffArray {
+        Ok(Array {
             columns: header.attrs,
             data
         })
@@ -54,8 +54,8 @@ impl<T> ArffArray<T> {
     }
 }
 
-impl<T: Clone> ArffArray<T> {
-    pub fn clone_rows(&self, indices: &[usize]) -> ArffArray<T> {
+impl<T: Clone> Array<T> {
+    pub fn clone_rows(&self, indices: &[usize]) -> Array<T> {
         let n_cols = self.n_cols();
 
         let mut data = Vec::with_capacity(indices.len() * n_cols);
@@ -65,13 +65,13 @@ impl<T: Clone> ArffArray<T> {
             data.extend_from_slice(col_data);
         }
 
-        ArffArray {
+        Array {
             columns: self.columns.clone(),
             data,
         }
     }
 
-    pub fn clone_cols(&self, indices: &[usize]) -> ArffArray<T> {
+    pub fn clone_cols(&self, indices: &[usize]) -> Array<T> {
         let n_cols = self.n_cols();
         let n_rows = self.n_rows();
 
@@ -89,13 +89,13 @@ impl<T: Clone> ArffArray<T> {
             }
         }
 
-        ArffArray {
+        Array {
             columns,
             data,
         }
     }
 
-    pub fn clone_cols_by_name(&self, col_names: &[&str]) -> ArffArray<T> {
+    pub fn clone_cols_by_name(&self, col_names: &[&str]) -> Array<T> {
         let indices: Vec<_> = col_names
             .iter()
             .map(|&n|
@@ -110,7 +110,7 @@ impl<T: Clone> ArffArray<T> {
     }
 }
 
-impl<T: Copy + ToPrimitive> ArffArray<T>
+impl<T: Copy + ToPrimitive> Array<T>
 {
     /// Convert the numeric representation of a Nominal value at `row`/`col` into its
     /// corresponding name. Returns None if the value is Numeric.
@@ -128,7 +128,7 @@ impl<T: Copy + ToPrimitive> ArffArray<T>
 
 #[test]
 fn test_array() {
-    let array:  ArffArray<f64> = ArffArray {
+    let array:  Array<f64> = Array {
         columns: vec![
             Attribute {
                 name: "a".to_owned(),
