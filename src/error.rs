@@ -40,6 +40,8 @@ pub enum Error {
     InvalidColumnType(String),
     WrongNominalValue(String),
     UnsupportedColumnType(String),
+
+    ConversionError
 }
 
 impl ser::Error for Error {
@@ -80,6 +82,7 @@ impl std::error::Error for Error {
             Error::InvalidColumnType(_) => "column type not understood",
             Error::UnsupportedColumnType(_) => "column type not supported",
             Error::WrongNominalValue(_) => "wrong nominal value",
+            Error::ConversionError => "conversion error"
         }
     }
 }

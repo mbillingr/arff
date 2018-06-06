@@ -6,7 +6,7 @@
 
 use num_traits::ToPrimitive;
 
-use error::{Result};
+use error::{Error, Result};
 use parser::{Attribute, DType, Header};
 
 /// A contiguos and homogenous representation of an Arff data set with additional column meta
@@ -123,6 +123,32 @@ impl<T: Copy + ToPrimitive> Array<T>
             }
             DType::String => unreachable!()
         }
+    }
+
+    pub fn to_usize_array(&self) -> Result<Array<usize>> {
+        let columns = self.columns.clone();
+        let data: Result<_> = self.data
+            .iter()
+            .map(|x| x.to_usize().ok_or(Error::ConversionError))
+            .collect();
+
+        Ok(Array {
+            columns,
+            data: data?,
+        })
+    }
+
+    pub fn to_f64_array(&self) -> Result<Array<f64>> {
+        let columns = self.columns.clone();
+        let data: Result<_> = self.data
+            .iter()
+            .map(|x| x.to_f64().ok_or(Error::ConversionError))
+            .collect();
+
+        Ok(Array {
+            columns,
+            data: data?,
+        })
     }
 }
 
