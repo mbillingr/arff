@@ -187,7 +187,7 @@ impl<'a> Parser<'a> {
         let mut s = Vec::new();
         loop {
             match self.current_char {
-                b'0' | b' ' | b'\t' | b'\n' | b',' => break,
+                0 | b' ' | b'\t' | b'\n' | b',' => break,
                 ch => s.push(ch),
             }
             self.advance();
@@ -441,3 +441,13 @@ macro_rules! impl_parse_primitive_signed {
 impl_parse_primitive_signed!(parse_i8, i8, -128, 127);
 impl_parse_primitive_signed!(parse_i16, i16, I16_MIN, I16_MAX);
 impl_parse_primitive_signed!(parse_i32, i32, I32_MIN, I32_MAX);
+
+
+/// Error parsing unquoted strings that contain '0'.
+/// https://github.com/mbillingr/arff/issues/1
+#[test]
+fn github_issue_1() {
+    let mut parser = Parser::new("abc0def");
+    assert_eq!(parser.parse_unquoted_string(), Ok("abc0def".into()));
+    assert!(parser.is_eof());
+}
