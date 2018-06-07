@@ -162,13 +162,14 @@ impl<T: Numeric> Column<T> {
             ColumnData::Numeric {ref mut values} => values.push(T::parse(parser)?),
             ColumnData::String {ref mut values} => values.push(parser.parse_string()?),
             ColumnData::Nominal {ref mut values, ref categories} => {
+                let pos = parser.pos();
                 let value = parser.parse_unquoted_string()?;
                 match categories
                     .iter()
                     .position(|item| item == &value)
                     {
                         Some(i) => values.push(i),
-                        None => return Err(Error::WrongNominalValue(value)),
+                        None => return Err(Error::WrongNominalValue(pos, value)),
                     }
             }
             //ColumnData::Date {..} => unimplemented!(),

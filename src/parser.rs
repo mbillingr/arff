@@ -212,6 +212,8 @@ impl<'a> Parser<'a> {
         let name = self.parse_string()?;
         self.skip_spaces();
 
+        let pos = self.pos;
+
         let mut s = Vec::new();
         loop {
             match self.current_char {
@@ -237,8 +239,8 @@ impl<'a> Parser<'a> {
             "REAL" |
             "INTE" => Ok(Attribute {name, dtype: DType::Numeric}),
             "STRI" => Ok(Attribute {name, dtype: DType::String}),
-            "DATE" => Err(Error::UnsupportedColumnType(s)),
-            _ => Err(Error::InvalidColumnType(s))
+            "DATE" => Err(Error::UnsupportedColumnType(pos, s)),
+            _ => Err(Error::InvalidColumnType(pos, s))
         }
     }
 
