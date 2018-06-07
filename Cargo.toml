@@ -1,6 +1,6 @@
 [package]
 name = "arff"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Martin Billinger <flkazemakase@gmail.com>"]
 
 description = "ARFF file format serializer and deserializer"
