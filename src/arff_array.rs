@@ -29,6 +29,12 @@ impl<T> Array<T> {
         &self.data[row * self.n_cols() + col]
     }
 
+    pub fn row(&self, row: usize) -> &[T] {
+        let a = row * self.n_cols();
+        let b = a + self.n_cols();
+        &self.data[a..b]
+    }
+
     #[inline(always)]
     pub fn n_cols(&self) -> usize {
         self.columns.len()
