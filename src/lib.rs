@@ -72,7 +72,7 @@ mod ser;
 mod de;
 mod parser;
 
-pub use arff_array::Array;
+pub use arff_array::{Array, ArrayCastInto, ArrayCastFrom};
 pub use dynamic::{Column, DataSet, Value};
 pub use error::{Error, Result};
 pub use ser::{to_string, Serializer};

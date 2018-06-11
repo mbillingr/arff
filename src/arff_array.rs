@@ -158,7 +158,7 @@ impl<T: Copy + ToPrimitive> Array<T>
     }
 }
 
-trait ArrayCastInto<T>: Sized {
+pub trait ArrayCastInto<T>: Sized {
     fn cast_into(&self) -> Result<Array<T>>;
 }
 
@@ -170,7 +170,7 @@ impl<S, T> ArrayCastInto<T> for Array<S>
     }
 }
 
-trait ArrayCastFrom<T>: Sized {
+pub trait ArrayCastFrom<T>: Sized {
     fn cast_from(arr: &Array<T>) -> Result<Self>;
 }
 
