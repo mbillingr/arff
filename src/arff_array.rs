@@ -158,6 +158,59 @@ impl<T: Copy + ToPrimitive> Array<T>
     }
 }
 
+trait ArrayCastInto<T>: Sized {
+    fn cast_into(&self) -> Result<Array<T>>;
+}
+
+impl<S, T> ArrayCastInto<T> for Array<S>
+    where Array<T>: ArrayCastFrom<S>
+{
+    fn cast_into(&self) -> Result<Array<T>> {
+        Array::<T>::cast_from(self)
+    }
+}
+
+trait ArrayCastFrom<T>: Sized {
+    fn cast_from(arr: &Array<T>) -> Result<Self>;
+}
+
+macro_rules! impl_cast {
+    ($target:ident, $func:ident) => (
+        impl<T> ArrayCastFrom<T> for Array<$target>
+            where T: ToPrimitive
+        {
+            fn cast_from(arr: &Array<T>) -> Result<Self> {
+                let columns = arr.columns.clone();
+                let data: Result<_> = arr.data
+                    .iter()
+                    .map(|x| x.$func().ok_or(Error::ConversionError))
+                    .collect();
+
+                Ok(Array {
+                    columns,
+                    data: data?,
+                })
+            }
+        }
+    )
+}
+
+impl_cast!(f32, to_f32);
+impl_cast!(f64, to_f64);
+
+impl_cast!(i64, to_i64);
+impl_cast!(i32, to_i32);
+impl_cast!(i16, to_i16);
+impl_cast!(i8, to_i8);
+
+impl_cast!(u64, to_u64);
+impl_cast!(u32, to_u32);
+impl_cast!(u16, to_u16);
+impl_cast!(u8, to_u8);
+
+impl_cast!(isize, to_isize);
+impl_cast!(usize, to_usize);
+
 #[test]
 fn test_array() {
     let array:  Array<f64> = Array {
