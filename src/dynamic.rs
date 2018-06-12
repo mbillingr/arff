@@ -1,27 +1,63 @@
 
 use super::{Error, Result};
-use parser::{self, DType, Parser};
+use parser::{self, DType, DynamicValue, Parser};
 
 
 /// A dynamically typed representation of an ARFF data set
 #[derive(Debug, PartialEq)]
-pub struct DataSet<T=f64> {
+pub struct DataSet {
     relation: String,
-    columns: Vec<Column<T>>,
+    columns: Vec<Column>,
     n_rows: usize,
 }
 
 /// A dynamically typed column of an ARFF data set
 #[derive(Debug, PartialEq)]
-pub struct Column<T> {
+pub struct Column {
     name: String,
-    data: ColumnData<T>,
+    data: ColumnData,
 }
 
 #[derive(Debug, PartialEq)]
-enum ColumnData<T> {
-    Numeric {
-        values: Vec<T>
+enum ColumnData {
+    U8 {
+        values: Vec<u8>
+    },
+
+    U16 {
+        values: Vec<u16>
+    },
+
+    U32 {
+        values: Vec<u32>
+    },
+
+    U64 {
+        values: Vec<u64>
+    },
+
+    I8 {
+        values: Vec<i8>
+    },
+
+    I16 {
+        values: Vec<i16>
+    },
+
+    I32 {
+        values: Vec<i32>
+    },
+
+    I64 {
+        values: Vec<i64>
+    },
+
+    F32 {
+        values: Vec<f32>
+    },
+
+    F64 {
+        values: Vec<f64>
     },
 
     String {
@@ -41,13 +77,27 @@ enum ColumnData<T> {
 
 /// a dynamically typed ARFF value
 #[derive(Debug, PartialEq)]
-pub enum Value<'a, T=f64> {
-    Numeric(T),
+pub enum Value<'a> {
+    U8(u8), U16(u16), U32(u32), U64(u64),
+    I8(i8), I16(i16), I32(i32), I64(i64),
+    F64(f64),
     String(&'a str),
     Nominal(usize, &'a Vec<String>),
 }
 
-impl<T: Numeric> DataSet<T> {
+impl<'a> From<u8> for Value<'a> { fn from(x: u8) -> Self { Value::U8(x) } }
+impl<'a> From<u16> for Value<'a> { fn from(x: u16) -> Self { Value::U16(x) } }
+impl<'a> From<u32> for Value<'a> { fn from(x: u32) -> Self { Value::U32(x) } }
+impl<'a> From<u64> for Value<'a> { fn from(x: u64) -> Self { Value::U64(x) } }
+impl<'a> From<i8> for Value<'a> { fn from(x: i8) -> Self { Value::I8(x) } }
+impl<'a> From<i16> for Value<'a> { fn from(x: i16) -> Self { Value::I16(x) } }
+impl<'a> From<i32> for Value<'a> { fn from(x: i32) -> Self { Value::I32(x) } }
+impl<'a> From<i64> for Value<'a> { fn from(x: i64) -> Self { Value::I64(x) } }
+impl<'a> From<f32> for Value<'a> { fn from(x: f32) -> Self { Value::F64(x as f64) } }
+impl<'a> From<f64> for Value<'a> { fn from(x: f64) -> Self { Value::F64(x) } }
+impl<'a> From<&'a str> for Value<'a> { fn from(s: &'a str) -> Self { Value::String(s) } }
+
+impl DataSet {
 
     /// Deserialize an instance of type `DataSet` from an ARFF formatted string.
     pub fn from_str(input: &str) -> Result<Self> {
@@ -107,27 +157,22 @@ impl<T: Numeric> DataSet<T> {
     }
 
     /// get data row by index
-    pub fn row(&self, idx: usize) -> Vec<Value<T>> {
-        let mut row = Vec::with_capacity(self.columns.len());
-        for col in self.columns.iter() {
-            match col.data {
-                ColumnData::Numeric {ref values} => row.push(Value::Numeric(values[idx])),
-                ColumnData::String {ref values} => row.push(Value::String(&values[idx])),
-                ColumnData::Nominal {ref categories, ref values} => row.push(Value::Nominal(values[idx], categories)),
-            }
-        }
-        row
+    pub fn row<T>(&self, idx: usize) -> Vec<Value> {
+        self.columns
+            .iter()
+            .map(|c| c.item(idx))
+            .collect()
     }
 
     /// get data column by index
-    pub fn col(&self, idx: usize) -> &Column<T> {
+    pub fn col(&self, idx: usize) -> &Column {
         &self.columns[idx]
     }
 
     /// get column by name
     ///
     /// panics if there is no such column.
-    pub fn col_by_name(&self, col: &str) -> &Column<T> {
+    pub fn col_by_name(&self, col: &str) -> &Column {
         for c in &self.columns {
             if c.name == col {
                 return c
@@ -137,19 +182,19 @@ impl<T: Numeric> DataSet<T> {
     }
 
     /// get item by row/column index
-    pub fn item(&self, row: usize, col: usize) -> Value<T> {
+    pub fn item(&self, row: usize, col: usize) -> Value {
         self.col(col).item(row)
     }
 
     /// get item by row index and column name
     ///
     /// panics if there is no such column.
-    pub fn item_by_name(&self, row: usize, col: &str) -> Value<T> {
+    pub fn item_by_name<T>(&self, row: usize, col: &str) -> Value {
         self.col_by_name(col).item(row)
     }
 }
 
-impl<T: Numeric> Column<T> {
+impl Column {
     fn from_attr(attr: parser::Attribute) -> Result<Self> {
         Ok(Column {
             name: attr.name,
@@ -159,7 +204,6 @@ impl<T: Numeric> Column<T> {
 
     fn parse_value(&mut self, parser: &mut Parser) -> Result<()> {
         match self.data {
-            ColumnData::Numeric {ref mut values} => values.push(T::parse(parser)?),
             ColumnData::String {ref mut values} => values.push(parser.parse_string()?),
             ColumnData::Nominal {ref mut values, ref categories} => {
                 let pos = parser.pos();
@@ -172,22 +216,77 @@ impl<T: Numeric> Column<T> {
                         None => return Err(Error::WrongNominalValue(pos, value)),
                     }
             }
+            _ => self.push(parser.parse_dynamic()?),
             //ColumnData::Date {..} => unimplemented!(),
         }
         Ok(())
     }
 
+    fn push(&mut self, value: DynamicValue) {
+        self.data = match (&mut self.data, value) {
+            (ColumnData::U8{ref mut values}, DynamicValue::U8(v)) => {
+                values.push(v);
+                return
+            },
+            (ColumnData::U8{ref mut values}, DynamicValue::U16(v)) => {
+                let mut values: Vec<_> = values.iter().map(|&x| x as u16).collect();
+                values.push(v);
+                ColumnData::U16{values}
+            },
+            (ColumnData::U8{ref mut values}, DynamicValue::U32(v)) => {
+                let mut values: Vec<_> = values.iter().map(|&x| x as u32).collect();
+                values.push(v);
+                ColumnData::U32{values}
+            },
+            (ColumnData::U8{ref mut values}, DynamicValue::U64(v)) => {
+                let mut values: Vec<_> = values.iter().map(|&x| x as u64).collect();
+                values.push(v);
+                ColumnData::U64{values}
+            },
+            (ColumnData::U8{ref mut values}, DynamicValue::I8(v)) => {
+                let mut values: Vec<_> = values.iter().map(|&x| x as i16).collect();
+                values.push(v as i16);
+                ColumnData::I16{values}
+            },
+            (ColumnData::U8{ref mut values}, DynamicValue::I16(v)) => {
+                let mut values: Vec<_> = values.iter().map(|&x| x as i16).collect();
+                values.push(v);
+                ColumnData::I16{values}
+            },
+            (ColumnData::U8{ref mut values}, DynamicValue::I32(v)) => {
+                let mut values: Vec<_> = values.iter().map(|&x| x as i32).collect();
+                values.push(v);
+                ColumnData::I32{values}
+            },
+            (ColumnData::U8{ref mut values}, DynamicValue::U64(v)) => {
+                let mut values: Vec<_> = values.iter().map(|&x| x as i64).collect();
+                values.push(v);
+                ColumnData::I64{values}
+            },
+            _ => unimplemented!()
+        };
+    }
+
     /// get item by index
-    pub fn item(&self, idx: usize) -> Value<T> {
+    pub fn item(&self, idx: usize) -> Value {
         match self.data {
-            ColumnData::Numeric {ref values} => Value::Numeric(values[idx]),
-            ColumnData::String {ref values} => Value::String(&values[idx]),
+            ColumnData::U8 {ref values} => values[idx].into(),
+            ColumnData::U16 {ref values} => values[idx].into(),
+            ColumnData::U32 {ref values} => values[idx].into(),
+            ColumnData::U64 {ref values} => values[idx].into(),
+            ColumnData::I8 {ref values} => values[idx].into(),
+            ColumnData::I16 {ref values} => values[idx].into(),
+            ColumnData::I32 {ref values} => values[idx].into(),
+            ColumnData::I64 {ref values} => values[idx].into(),
+            ColumnData::F32 {ref values} => values[idx].into(),
+            ColumnData::F64 {ref values} => values[idx].into(),
+            ColumnData::String {ref values} => values[idx].as_str().into(),
             ColumnData::Nominal {ref categories, ref values} => Value::Nominal(values[idx], categories),
         }
     }
 }
 
-impl<T> ColumnData<T> {
+impl ColumnData {
     fn new_from_dtype(dt: DType) -> Self {
         match dt {
             DType::Numeric => ColumnData::new_numeric(),
@@ -197,7 +296,7 @@ impl<T> ColumnData<T> {
     }
 
     fn new_numeric() -> Self {
-        ColumnData::Numeric {
+        ColumnData::U8 {
             values: Vec::new()
         }
     }
@@ -301,8 +400,8 @@ fn dynamic_loader() {
         relation: "Test data".to_owned(),
         n_rows: 2,
         columns: vec![
-            Column { name: "int".to_owned(), data: ColumnData::Numeric {values: vec![1.0, 4.0]}},
-            Column { name: "float".to_owned(), data: ColumnData::Numeric {values: vec![2.0, 5.6]}},
+            Column { name: "int".to_owned(), data: ColumnData::U8 {values: vec![1, 4]}},
+            Column { name: "float".to_owned(), data: ColumnData::F64 {values: vec![2.0, 5.6]}},
             Column { name: "text".to_owned(), data: ColumnData::String {
                 values: vec!["three".to_owned(), "7".to_owned()]
             }},
