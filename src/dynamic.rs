@@ -1,4 +1,4 @@
-
+use std;
 use super::{Error, Result};
 use parser::{self, DType, DynamicValue, Parser};
 
@@ -20,6 +20,8 @@ pub struct Column {
 
 #[derive(Debug, PartialEq)]
 enum ColumnData {
+    Invalid,
+
     U8 {
         values: Vec<u8>
     },
@@ -73,6 +75,95 @@ enum ColumnData {
         format: String,
         values: Vec<String>,
     },*/
+}
+
+#[derive(Debug, PartialEq)]
+enum ColumnType {
+    U8, U16, U32, U64,
+    I8, I16, I32, I64,
+    F32, F64,
+    String,
+    Nominal {
+        categories: Vec<String>,
+    },
+}
+
+macro_rules! def_columndata_into {
+    ($name:ident, $variant:ident, $typ:ident) => (
+        fn $name(self) -> Self {
+            let values = match self {
+                ColumnData::U8{values} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::U16{values} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::U32{values} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::U64{values} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::I8{values} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::I16{values} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::I32{values} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::I64{values} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::F32{values} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::F64{values} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::String{values} => values.into_iter().map(|x| x.parse().unwrap()).collect(),
+                ColumnData::Nominal{values, ..} => values.into_iter().map(|x| x as $typ).collect(),
+                ColumnData::Invalid => panic!("invalid column state"),
+            };
+            ColumnData::$variant{values}
+        }
+    )
+}
+
+macro_rules! def_columndata_pushed {
+    ($name:ident, $variant:ident, $typ:ident) => (
+        fn $name(mut self, v: $typ) -> Self {
+            match self {
+                ColumnData::$variant{ref mut values} => values.push(v),
+                ColumnData::Invalid => panic!("invalid column state"),
+                _ => panic!("unexpected type: {:?} (expected {:?}", self, ColumnType::$variant)
+            };
+            self
+        }
+    )
+}
+
+impl ColumnData {
+    fn get_type(&self) -> ColumnType {
+        match self {
+            ColumnData::U8{..} => ColumnType::U8,
+            ColumnData::U16{..} => ColumnType::U16,
+            ColumnData::U32{..} => ColumnType::U32,
+            ColumnData::U64{..} => ColumnType::U64,
+            ColumnData::I8{..} => ColumnType::I8,
+            ColumnData::I16{..} => ColumnType::I16,
+            ColumnData::I32{..} => ColumnType::I32,
+            ColumnData::I64{..} => ColumnType::I64,
+            ColumnData::F32{..} => ColumnType::F32,
+            ColumnData::F64{..} => ColumnType::F64,
+            ColumnData::String{..} => ColumnType::String,
+            ColumnData::Nominal{categories, ..} => ColumnType::Nominal {categories: categories.clone()},
+            ColumnData::Invalid => panic!("invalid column state")
+        }
+    }
+
+    def_columndata_pushed!(pushed_u8, U8, u8);
+    def_columndata_pushed!(pushed_u16, U16, u16);
+    def_columndata_pushed!(pushed_u32, U32, u32);
+    def_columndata_pushed!(pushed_u64, U64, u64);
+    def_columndata_pushed!(pushed_i8, I8, i8);
+    def_columndata_pushed!(pushed_i16, I16, i16);
+    def_columndata_pushed!(pushed_i32, I32, i32);
+    def_columndata_pushed!(pushed_i64, I64, i64);
+    def_columndata_pushed!(pushed_f32, F32, f32);
+    def_columndata_pushed!(pushed_f64, F64, f64);
+
+    def_columndata_into!(into_u8, U8, u8);
+    def_columndata_into!(into_u16, U16, u16);
+    def_columndata_into!(into_u32, U32, u32);
+    def_columndata_into!(into_u64, U64, u64);
+    def_columndata_into!(into_i8, I8, i8);
+    def_columndata_into!(into_i16, I16, i16);
+    def_columndata_into!(into_i32, I32, i32);
+    def_columndata_into!(into_i64, I64, i64);
+    def_columndata_into!(into_f32, F32, f32);
+    def_columndata_into!(into_f64, F64, f64);
 }
 
 /// a dynamically typed ARFF value
@@ -216,55 +307,121 @@ impl Column {
                         None => return Err(Error::WrongNominalValue(pos, value)),
                     }
             }
-            _ => self.push(parser.parse_dynamic()?),
+            _ => self.push(parser.parse_dynamic()?)
             //ColumnData::Date {..} => unimplemented!(),
         }
         Ok(())
     }
 
     fn push(&mut self, value: DynamicValue) {
-        self.data = match (&mut self.data, value) {
-            (ColumnData::U8{ref mut values}, DynamicValue::U8(v)) => {
-                values.push(v);
-                return
-            },
-            (ColumnData::U8{ref mut values}, DynamicValue::U16(v)) => {
-                let mut values: Vec<_> = values.iter().map(|&x| x as u16).collect();
-                values.push(v);
-                ColumnData::U16{values}
-            },
-            (ColumnData::U8{ref mut values}, DynamicValue::U32(v)) => {
-                let mut values: Vec<_> = values.iter().map(|&x| x as u32).collect();
-                values.push(v);
-                ColumnData::U32{values}
-            },
-            (ColumnData::U8{ref mut values}, DynamicValue::U64(v)) => {
-                let mut values: Vec<_> = values.iter().map(|&x| x as u64).collect();
-                values.push(v);
-                ColumnData::U64{values}
-            },
-            (ColumnData::U8{ref mut values}, DynamicValue::I8(v)) => {
-                let mut values: Vec<_> = values.iter().map(|&x| x as i16).collect();
-                values.push(v as i16);
-                ColumnData::I16{values}
-            },
-            (ColumnData::U8{ref mut values}, DynamicValue::I16(v)) => {
-                let mut values: Vec<_> = values.iter().map(|&x| x as i16).collect();
-                values.push(v);
-                ColumnData::I16{values}
-            },
-            (ColumnData::U8{ref mut values}, DynamicValue::I32(v)) => {
-                let mut values: Vec<_> = values.iter().map(|&x| x as i32).collect();
-                values.push(v);
-                ColumnData::I32{values}
-            },
-            (ColumnData::U8{ref mut values}, DynamicValue::U64(v)) => {
-                let mut values: Vec<_> = values.iter().map(|&x| x as i64).collect();
-                values.push(v);
-                ColumnData::I64{values}
-            },
-            _ => unimplemented!()
-        };
+
+        let data = std::mem::replace(&mut self.data, ColumnData::Invalid);
+
+        match (data.get_type(), value) {
+            (ColumnType::U8, DynamicValue::U8(v)) => self.data = data.pushed_u8(v),
+            (ColumnType::U8, DynamicValue::U16(v)) => self.data = data.into_u16().pushed_u16(v),
+            (ColumnType::U8, DynamicValue::U32(v)) => self.data = data.into_u32().pushed_u32(v),
+            (ColumnType::U8, DynamicValue::U64(v)) => self.data = data.into_u64().pushed_u64(v),
+            (ColumnType::U8, DynamicValue::I8(v)) => self.data = data.into_i16().pushed_i16(v as i16),
+            (ColumnType::U8, DynamicValue::I16(v)) => self.data = data.into_i16().pushed_i16(v),
+            (ColumnType::U8, DynamicValue::I32(v)) => self.data = data.into_i32().pushed_i32(v),
+            (ColumnType::U8, DynamicValue::I64(v)) => self.data = data.into_i64().pushed_i64(v),
+            (ColumnType::U8, DynamicValue::F64(v)) => self.data = data.into_f64().pushed_f64(v),
+
+            (ColumnType::U16, DynamicValue::U8(v)) => self.data = data.pushed_u16(v as u16),
+            (ColumnType::U16, DynamicValue::U16(v)) => self.data = data.pushed_u16(v),
+            (ColumnType::U16, DynamicValue::U32(v)) => self.data = data.into_u32().pushed_u32(v),
+            (ColumnType::U16, DynamicValue::U64(v)) => self.data = data.into_u64().pushed_u64(v),
+            (ColumnType::U16, DynamicValue::I8(v)) => self.data = data.into_i32().pushed_i32(v as i32),
+            (ColumnType::U16, DynamicValue::I16(v)) => self.data = data.into_i32().pushed_i32(v as i32),
+            (ColumnType::U16, DynamicValue::I32(v)) => self.data = data.into_i32().pushed_i32(v),
+            (ColumnType::U16, DynamicValue::I64(v)) => self.data = data.into_i64().pushed_i64(v),
+            (ColumnType::U16, DynamicValue::F64(v)) => self.data = data.into_f64().pushed_f64(v),
+
+            (ColumnType::U32, DynamicValue::U8(v)) => self.data = data.pushed_u32(v as u32),
+            (ColumnType::U32, DynamicValue::U16(v)) => self.data = data.pushed_u32(v as u32),
+            (ColumnType::U32, DynamicValue::U32(v)) => self.data = data.pushed_u32(v),
+            (ColumnType::U32, DynamicValue::U64(v)) => self.data = data.into_u64().pushed_u64(v),
+            (ColumnType::U32, DynamicValue::I8(v)) => self.data = data.into_i64().pushed_i64(v as i64),
+            (ColumnType::U32, DynamicValue::I16(v)) => self.data = data.into_i64().pushed_i64(v as i64),
+            (ColumnType::U32, DynamicValue::I32(v)) => self.data = data.into_i64().pushed_i64(v as i64),
+            (ColumnType::U32, DynamicValue::I64(v)) => self.data = data.into_i64().pushed_i64(v),
+            (ColumnType::U32, DynamicValue::F64(v)) => self.data = data.into_f64().pushed_f64(v),
+
+            (ColumnType::U64, DynamicValue::U8(v)) => self.data = data.pushed_u64(v as u64),
+            (ColumnType::U64, DynamicValue::U16(v)) => self.data = data.pushed_u64(v as u64),
+            (ColumnType::U64, DynamicValue::U32(v)) => self.data = data.pushed_u64(v as u64),
+            (ColumnType::U64, DynamicValue::U64(v)) => self.data = data.pushed_u64(v),
+            (ColumnType::U64, DynamicValue::I8(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::U64, DynamicValue::I16(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::U64, DynamicValue::I32(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::U64, DynamicValue::I64(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::U64, DynamicValue::F64(v)) => self.data = data.into_f64().pushed_f64(v),
+
+            (ColumnType::I8, DynamicValue::U8(v)) => self.data = data.into_i16().pushed_i16(v as i16),
+            (ColumnType::I8, DynamicValue::U16(v)) => self.data = data.into_i32().pushed_i32(v as i32),
+            (ColumnType::I8, DynamicValue::U32(v)) => self.data = data.into_i64().pushed_i64(v as i64),
+            (ColumnType::I8, DynamicValue::U64(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::I8, DynamicValue::I8(v)) => self.data = data.pushed_i8(v),
+            (ColumnType::I8, DynamicValue::I16(v)) => self.data = data.into_i16().pushed_i16(v),
+            (ColumnType::I8, DynamicValue::I32(v)) => self.data = data.into_i32().pushed_i32(v),
+            (ColumnType::I8, DynamicValue::I64(v)) => self.data = data.into_i64().pushed_i64(v),
+            (ColumnType::I8, DynamicValue::F64(v)) => self.data = data.into_f64().pushed_f64(v),
+
+            (ColumnType::I16, DynamicValue::U8(v)) => self.data = data.pushed_i16(v as i16),
+            (ColumnType::I16, DynamicValue::U16(v)) => self.data = data.into_i32().pushed_i32(v as i32),
+            (ColumnType::I16, DynamicValue::U32(v)) => self.data = data.into_i64().pushed_i64(v as i64),
+            (ColumnType::I16, DynamicValue::U64(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::I16, DynamicValue::I8(v)) => self.data = data.pushed_i16(v as i16),
+            (ColumnType::I16, DynamicValue::I16(v)) => self.data = data.pushed_i16(v),
+            (ColumnType::I16, DynamicValue::I32(v)) => self.data = data.into_i32().pushed_i32(v),
+            (ColumnType::I16, DynamicValue::I64(v)) => self.data = data.into_i64().pushed_i64(v),
+            (ColumnType::I16, DynamicValue::F64(v)) => self.data = data.into_f64().pushed_f64(v),
+
+            (ColumnType::I32, DynamicValue::U8(v)) => self.data = data.pushed_i32(v as i32),
+            (ColumnType::I32, DynamicValue::U16(v)) => self.data = data.pushed_i32(v as i32),
+            (ColumnType::I32, DynamicValue::U32(v)) => self.data = data.into_i64().pushed_i64(v as i64),
+            (ColumnType::I32, DynamicValue::U64(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::I32, DynamicValue::I8(v)) => self.data = data.pushed_i32(v as i32),
+            (ColumnType::I32, DynamicValue::I16(v)) => self.data = data.pushed_i32(v as i32),
+            (ColumnType::I32, DynamicValue::I32(v)) => self.data = data.pushed_i32(v),
+            (ColumnType::I32, DynamicValue::I64(v)) => self.data = data.into_i64().pushed_i64(v),
+            (ColumnType::I32, DynamicValue::F64(v)) => self.data = data.into_f64().pushed_f64(v),
+
+            (ColumnType::I64, DynamicValue::U8(v)) => self.data = data.pushed_i64(v as i64),
+            (ColumnType::I64, DynamicValue::U16(v)) => self.data = data.pushed_i64(v as i64),
+            (ColumnType::I64, DynamicValue::U32(v)) => self.data = data.pushed_i64(v as i64),
+            (ColumnType::I64, DynamicValue::U64(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::I64, DynamicValue::I8(v)) => self.data = data.pushed_i64(v as i64),
+            (ColumnType::I64, DynamicValue::I16(v)) => self.data = data.pushed_i64(v as i64),
+            (ColumnType::I64, DynamicValue::I32(v)) => self.data = data.pushed_i64(v as i64),
+            (ColumnType::I64, DynamicValue::I64(v)) => self.data = data.pushed_i64(v),
+            (ColumnType::I64, DynamicValue::F64(v)) => self.data = data.into_f64().pushed_f64(v),
+
+            (ColumnType::F32, DynamicValue::U8(v)) => self.data = data.pushed_f32(v as f32),
+            (ColumnType::F32, DynamicValue::U16(v)) => self.data = data.pushed_f32(v as f32),
+            (ColumnType::F32, DynamicValue::U32(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::F32, DynamicValue::U64(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::F32, DynamicValue::I8(v)) => self.data = data.pushed_f32(v as f32),
+            (ColumnType::F32, DynamicValue::I16(v)) => self.data = data.pushed_f32(v as f32),
+            (ColumnType::F32, DynamicValue::I32(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::F32, DynamicValue::I64(v)) => self.data = data.into_f64().pushed_f64(v as f64),
+            (ColumnType::F32, DynamicValue::F64(v)) => self.data = data.into_f64().pushed_f64(v),
+
+            (ColumnType::F64, DynamicValue::U8(v)) => self.data = data.pushed_f64(v as f64),
+            (ColumnType::F64, DynamicValue::U16(v)) => self.data = data.pushed_f64(v as f64),
+            (ColumnType::F64, DynamicValue::U32(v)) => self.data = data.pushed_f64(v as f64),
+            (ColumnType::F64, DynamicValue::U64(v)) => self.data = data.pushed_f64(v as f64),
+            (ColumnType::F64, DynamicValue::I8(v)) => self.data = data.pushed_f64(v as f64),
+            (ColumnType::F64, DynamicValue::I16(v)) => self.data = data.pushed_f64(v as f64),
+            (ColumnType::F64, DynamicValue::I32(v)) => self.data = data.pushed_f64(v as f64),
+            (ColumnType::F64, DynamicValue::I64(v)) => self.data = data.pushed_f64(v as f64),
+            (ColumnType::F64, DynamicValue::F64(v)) => self.data = data.pushed_f64(v),
+
+            (ColumnType::String, _) => unreachable!(),
+            (ColumnType::Nominal{..}, _) => unreachable!(),
+            (_, DynamicValue::String(_)) => unimplemented!()
+        }
     }
 
     /// get item by index
@@ -282,6 +439,7 @@ impl Column {
             ColumnData::F64 {ref values} => values[idx].into(),
             ColumnData::String {ref values} => values[idx].as_str().into(),
             ColumnData::Nominal {ref categories, ref values} => Value::Nominal(values[idx], categories),
+            ColumnData::Invalid => panic!("invalid column state"),
         }
     }
 }
