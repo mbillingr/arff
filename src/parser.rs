@@ -454,11 +454,18 @@ impl<'a> Parser<'a> {
         // try to parse as integer
 
         self.buffer.clear();
-        self.buffer.push_back(self.current_char);
 
         let negative = match self.current_char {
-            b'-' => { self.advance(); true }
-            b'+' => { self.advance(); false }
+            b'-' => {
+                self.buffer.push_back(self.current_char);
+                self.advance();
+                true
+            }
+            b'+' => {
+                self.buffer.push_back(self.current_char);
+                self.advance();
+                false
+            }
             _ => false,
         };
 
