@@ -7,6 +7,7 @@
 // except according to those terms.
 
 use std::{i16, i32, i64, u8, u16, u32, u64, f64};
+use std::collections::VecDeque;
 use std::str;
 
 use super::error::{Error, Result};
@@ -20,8 +21,19 @@ pub const I32_MAX: i64 = i32::MAX as i64;
 pub const U16_MAX: u64 = u16::MAX as u64;
 pub const U32_MAX: u64 = u32::MAX as u64;
 
+pub const I16_MINABS: u64 = I16_MAX as u64 + 1;
+pub const I32_MINABS: u64 = I32_MAX as u64 + 1;
+
 pub const I64_MAX: u64 = i64::MAX as u64;
 pub const I64_MINABS: u64 = I64_MAX + 1;
+
+
+pub enum DynamicValue {
+    U8(u8), U16(u16), U32(u32), U64(u64),
+    I8(i8), I16(i16), I32(i32), I64(i64),
+    F64(f64),
+    String(String),
+}
 
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -60,6 +72,7 @@ pub struct Parser<'a> {
     input: str::Bytes<'a>,
     current_char: u8,
     pos: TextPos,
+    buffer: VecDeque<u8>,  // reusable scratch space
 }
 
 impl<'a> Parser<'a> {
@@ -67,7 +80,8 @@ impl<'a> Parser<'a> {
         let mut p = Parser {
             input:  input.bytes(),
             current_char: 0,
-            pos: TextPos {line: 1, column: 0}
+            pos: TextPos {line: 1, column: 0},
+            buffer: VecDeque::new(),
         };
         p.advance();
         p
@@ -420,6 +434,79 @@ impl<'a> Parser<'a> {
         match String::from_utf8(s).unwrap().parse() {
             Ok(v) => Ok(v),
             Err(_) => Err(Error::ExpectedFloatValue(pos)),
+        }
+    }
+
+    /// Try to parse value in most compact representation.
+    /// u8 > i8 > u16 > ... > f64 > String
+    pub fn parse_dynamic(&mut self) -> Result<DynamicValue> {
+        let pos = self.pos();
+
+        // if it is quoted, it is certainly a string
+        match self.current_char {
+            b'\'' | b'\"' => {
+                let s = self.parse_quoted_string()?;
+                return Ok(DynamicValue::String(s))
+            }
+            _ => { }
+        }
+
+        // try to parse as integer
+
+        self.buffer.clear();
+        self.buffer.push_back(self.current_char);
+
+        let negative = match self.current_char {
+            b'-' => { self.advance(); true }
+            b'+' => { self.advance(); false }
+            _ => false,
+        };
+
+        let mut value = 0u64;
+        loop {
+            match self.current_char {
+                ch @ b'0' ... b'9' => {
+                    value = value.checked_mul(10)
+                        .ok_or(Error::NumericOverflow(pos))?
+                        .checked_add((ch - b'0') as u64)
+                        .ok_or(Error::NumericOverflow(pos))?;
+                }
+                0 | b' ' | b'\t' | b'\n' | b',' => {
+                    match (negative, value) {
+                        (false, 0...255) => return Ok(DynamicValue::U8(value as u8)),
+                        (true, 0...128) => return Ok(DynamicValue::I8((-(value as i64)) as i8)),
+                        (false, 0...U16_MAX) => return Ok(DynamicValue::U16(value as u16)),
+                        (true, 0...I16_MINABS) => return Ok(DynamicValue::I16((-(value as i64)) as i16)),
+                        (false, 0...U32_MAX) => return Ok(DynamicValue::U32(value as u32)),
+                        (true, 0...I32_MINABS) => return Ok(DynamicValue::I32((-(value as i64)) as i32)),
+                        (false, _) => return Ok(DynamicValue::U64(value)),
+                        (true, I64_MINABS) => return Ok(DynamicValue::I64(i64::MIN)),
+                        (true, 0...I64_MINABS) => return Ok(DynamicValue::I64(-(value as i64))),
+                        _ => break,
+                    }
+                }
+                _ => break,
+            }
+            self.buffer.push_back(self.current_char);
+            self.advance();
+        }
+
+        // not an integer => collect remaining characters
+        loop {
+            match self.current_char {
+                0 | b' ' | b'\t' | b'\n' | b',' => break,
+                _ => {
+                    self.buffer.push_back(self.current_char);
+                    self.advance();
+                },
+            }
+        }
+
+        let s = String::from_utf8(self.buffer.drain(..).collect()).unwrap();
+
+        match s.parse::<f64>() {
+            Ok(value) => Ok(DynamicValue::F64(value)),
+            Err(_) => Ok(DynamicValue::String(s)),
         }
     }
 }
