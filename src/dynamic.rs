@@ -122,7 +122,7 @@ macro_rules! def_columndata_pushed {
 
 impl ColumnData {
     fn get_type(&self) -> ColumnType {
-        match self {
+        match *self {
             ColumnData::U8{..} => ColumnType::U8,
             ColumnData::U16{..} => ColumnType::U16,
             ColumnData::U32{..} => ColumnType::U32,
@@ -133,25 +133,25 @@ impl ColumnData {
             ColumnData::I64{..} => ColumnType::I64,
             ColumnData::F64{..} => ColumnType::F64,
             ColumnData::String{..} => ColumnType::String,
-            ColumnData::Nominal{categories, ..} => ColumnType::Nominal {categories: categories.clone()},
-            &ColumnData::Invalid => panic!("invalid column state")
+            ColumnData::Nominal{ref categories, ..} => ColumnType::Nominal {categories: categories.clone()},
+            ColumnData::Invalid => panic!("invalid column state")
         }
     }
 
     fn is_empty(&self) -> bool {
-        match self {
-            ColumnData::U8{values} => values.is_empty(),
-            ColumnData::U16{values} => values.is_empty(),
-            ColumnData::U32{values} => values.is_empty(),
-            ColumnData::U64{values} => values.is_empty(),
-            ColumnData::I8{values} => values.is_empty(),
-            ColumnData::I16{values} => values.is_empty(),
-            ColumnData::I32{values} => values.is_empty(),
-            ColumnData::I64{values} => values.is_empty(),
-            ColumnData::F64{values} => values.is_empty(),
-            ColumnData::String{values} => values.is_empty(),
-            ColumnData::Nominal{values, ..} => values.is_empty(),
-            &ColumnData::Invalid => panic!("invalid column state")
+        match *self {
+            ColumnData::U8{ref values} => values.is_empty(),
+            ColumnData::U16{ref values} => values.is_empty(),
+            ColumnData::U32{ref values} => values.is_empty(),
+            ColumnData::U64{ref values} => values.is_empty(),
+            ColumnData::I8{ref values} => values.is_empty(),
+            ColumnData::I16{ref values} => values.is_empty(),
+            ColumnData::I32{ref values} => values.is_empty(),
+            ColumnData::I64{ref values} => values.is_empty(),
+            ColumnData::F64{ref values} => values.is_empty(),
+            ColumnData::String{ref values} => values.is_empty(),
+            ColumnData::Nominal{ref values, ..} => values.is_empty(),
+            ColumnData::Invalid => panic!("invalid column state")
         }
     }
 
