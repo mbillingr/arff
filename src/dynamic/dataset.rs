@@ -5,7 +5,7 @@ use error::Result;
 use parser::{Attribute, DType, Parser};
 
 use super::FlatIter;
-use super::column::{Column, ColumnData, ColumnType};
+use super::column::{Column, ColumnType};
 use super::value::{CastValue, Value};
 
 /// A dynamically typed representation of an ARFF data set
@@ -212,7 +212,7 @@ impl DataSet {
             columns.push(Attribute { name, dtype });
         }
 
-        for i in (0..self.n_rows()) {
+        for i in 0..self.n_rows() {
             for col in self.columns.iter() {
                 data.push(T::from_value(col.item(i))?);
             }

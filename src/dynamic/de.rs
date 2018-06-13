@@ -257,7 +257,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        let (name, _) = self.input.peek().unwrap();
+        let &(name, _) = self.input.peek().unwrap();
         visitor.visit_str(name)
     }
 

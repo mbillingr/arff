@@ -7,7 +7,7 @@
 use num_traits::ToPrimitive;
 
 use error::{Error, Result};
-use parser::{Attribute, DType, Header};
+use parser::{Attribute, DType};
 
 /// A contiguos and homogenous representation of an Arff data set with additional column meta
 /// information.
