@@ -129,18 +129,6 @@ impl<'a> From<Option<&'a str>> for Value<'a> {
     }
 }
 
-macro_rules! def_value_into {
-    ($name:ident, $variant:ident, $typ:ident) => (
-        pub fn $name(&self) -> Result<$typ> {
-            match *self {
-                Value::Missing => Err(Error::UnexpectedMissingValue),
-                Value::$variant(x) => Ok(x),
-                _ => Err(Error::UnexpectedType),
-            }
-        }
-    )
-}
-
 impl<'a> Value<'a> {
     pub fn as_bool(&self) -> Result<bool> {
         match *self {
@@ -288,5 +276,21 @@ impl<'a> Value<'a> {
             Value::Nominal(i, _) =>Ok(i as f64),
             _ => Err(Error::ConversionError)
         }
+    }
+}
+
+pub trait CastValue: Sized {
+    fn from_value(v: Value) -> Result<Self>;
+}
+
+impl CastValue for f64 {
+    fn from_value(v: Value) -> Result<f64> {
+        v.as_f64()
+    }
+}
+
+impl CastValue for u8 {
+    fn from_value(v: Value) -> Result<u8> {
+        v.as_u8()
     }
 }

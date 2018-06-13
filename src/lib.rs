@@ -66,14 +66,13 @@ extern crate serde_derive;
 
 mod arff_array;
 mod de;
-mod dynamic;
+pub mod dynamic;
 mod error;
 mod parser;
 mod ser;
 
 pub use arff_array::{Array, ArrayCastFrom, ArrayCastInto};
 pub use de::{array_from_str, flat_from_str, from_str, Deserializer};
-pub use dynamic::{Column, DataSet, Value};
 pub use error::{Error, Result};
 pub use ser::{to_string, Serializer};
 

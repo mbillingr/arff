@@ -56,7 +56,7 @@ where
 
     deserializer.parser.parse_eof()?;
 
-    Array::new(deserializer.header, data)
+    Ok(Array::new(deserializer.header.attrs, data))
 }
 
 /// Deserialize an ARFF data set into a Rust data structure.

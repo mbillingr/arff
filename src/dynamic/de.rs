@@ -1,7 +1,7 @@
 use std::iter;
 
-use serde::de::{self, Deserialize, DeserializeSeed, EnumAccess, IntoDeserializer, MapAccess,
-                SeqAccess, VariantAccess, Visitor};
+use serde::de::{self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess,
+                SeqAccess, Visitor};
 
 use error::{Error, Result};
 
@@ -38,7 +38,7 @@ impl<'de> Deserializer<'de> {
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Error;
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -122,7 +122,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_f64(self.next()?.1.as_f64()?)
     }
 
-    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -143,14 +143,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_string(self.next()?.1.as_string()?)
     }
 
-    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
         unimplemented!()
     }
 
-    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -171,14 +171,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         }
     }
 
-    fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
         unimplemented!()
     }
 
-    fn deserialize_unit_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
+    fn deserialize_unit_struct<V>(self, _name: &'static str, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -192,7 +192,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_newtype_struct(self)
     }
 
-    fn deserialize_seq<V>(mut self, visitor: V) -> Result<V::Value>
+    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -219,23 +219,26 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.deserialize_seq(visitor)
     }
 
-    fn deserialize_map<V>(mut self, visitor: V) -> Result<V::Value>
+    fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        visitor.visit_map(self)
+        unimplemented!()
     }
 
     fn deserialize_struct<V>(
-        self,
+        mut self,
         _name: &'static str,
-        _fields: &'static [&'static str],
+        fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        self.deserialize_map(visitor)
+        visitor.visit_map(StructAcess {
+            de: &mut self,
+            n_fields: fields.len(),
+        })
     }
 
     fn deserialize_enum<V>(
@@ -258,7 +261,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_str(name)
     }
 
-    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -281,24 +284,30 @@ impl<'de> SeqAccess<'de> for Deserializer<'de> {
     }
 }
 
-impl<'de> MapAccess<'de> for Deserializer<'de> {
+struct StructAcess<'a, 'de:'a> {
+    de: &'a mut Deserializer<'de>,
+    n_fields: usize,
+}
+
+impl<'a, 'de> MapAccess<'de> for StructAcess<'a, 'de> {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
     where
         K: DeserializeSeed<'de>,
     {
-        if self.input.peek().is_none() {
+        if self.n_fields == 0 || self.de.input.peek().is_none() {
             return Ok(None)
         }
-        seed.deserialize(self).map(Some)
+        self.n_fields -= 1;
+        seed.deserialize(&mut *self.de).map(Some)
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
     where
         V: DeserializeSeed<'de>,
     {
-        seed.deserialize(self)
+        seed.deserialize(&mut *self.de)
     }
 }
 
@@ -378,14 +387,14 @@ fn named() {
         ],
     );
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, PartialEq)]
     enum Color {
         Red,
         Green,
         Blue,
     }
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, PartialEq)]
     struct Row {
         int: i16,
         float: Option<f32>,
@@ -393,11 +402,12 @@ fn named() {
         color: Color,
     }
 
-
     let x: Vec<Row> = from_dataset(&dset).unwrap();
 
     println!("{:?}", x);
 
-    /*assert_eq!(x, vec![(1, Some(2.0), "three".to_owned(), "blue".to_owned()),
-                       (4, None, "7".to_owned(), "red".to_owned())]);*/
+    assert_eq!(x, vec![
+        Row { int: 1, float: Some(2.0), text: "three".to_owned(), color: Color::Blue },
+        Row { int: 4, float: None, text: "7".to_owned(), color: Color::Red },
+    ]);
 }

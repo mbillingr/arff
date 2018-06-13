@@ -18,11 +18,18 @@ pub struct Array<T> {
 }
 
 impl<T> Array<T> {
-    pub fn new(header: Header, data: Vec<T>) -> Result<Self> {
-        Ok(Array {
-            columns: header.attrs,
+    pub fn new(columns: Vec<Attribute>, data: Vec<T>) -> Self {
+        Array {
+            columns,
             data,
-        })
+        }
+    }
+
+    pub fn empty() -> Self {
+        Array {
+            columns: Vec::new(),
+            data: Vec::new(),
+        }
     }
 
     pub fn at(&self, row: usize, col: usize) -> &T {
@@ -42,7 +49,11 @@ impl<T> Array<T> {
 
     #[inline(always)]
     pub fn n_rows(&self) -> usize {
-        self.data.len() / self.n_cols()
+        if self.data.len() == 0 {
+            0
+        } else {
+            self.data.len() / self.n_cols()
+        }
     }
 
     #[inline(always)]

@@ -8,7 +8,7 @@ pub mod de;
 pub use self::column::Column;
 pub use self::dataset::DataSet;
 pub use self::iter::FlatIter;
-pub use self::value::Value;
+pub use self::value::{CastValue, Value};
 
 #[cfg(test)]
 use self::column::ColumnData;

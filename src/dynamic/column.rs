@@ -6,7 +6,7 @@ use parser::{self, DType, DynamicValue, Parser};
 use super::value::Value;
 
 /// A dynamically typed column of an ARFF data set
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Column {
     name: String,
     data: ColumnData,
@@ -29,7 +29,7 @@ pub enum ColumnType {
 }
 
 /// The dynamically typed data of a column
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ColumnData {
     Invalid,
 
@@ -493,7 +493,7 @@ impl ColumnData {
         }
     }
 
-    fn get_type(&self) -> ColumnType {
+    pub fn get_type(&self) -> ColumnType {
         match *self {
             ColumnData::U8 { .. } => ColumnType::U8,
             ColumnData::U16 { .. } => ColumnType::U16,
