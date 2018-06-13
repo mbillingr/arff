@@ -6,7 +6,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-
 //! # ARFF
 //!
 //! An ARFF (Attribute-Relation File Format) file is an ASCII text file
@@ -66,18 +65,17 @@ extern crate serde;
 extern crate serde_derive;
 
 mod arff_array;
+mod de;
 mod dynamic;
 mod error;
-mod ser;
-mod de;
 mod parser;
+mod ser;
 
-pub use arff_array::{Array, ArrayCastInto, ArrayCastFrom};
+pub use arff_array::{Array, ArrayCastFrom, ArrayCastInto};
+pub use de::{array_from_str, flat_from_str, from_str, Deserializer};
 pub use dynamic::{Column, DataSet, Value};
 pub use error::{Error, Result};
 pub use ser::{to_string, Serializer};
-pub use de::{array_from_str, flat_from_str, from_str, Deserializer};
-
 
 #[cfg(test)]
 mod tests {
@@ -85,7 +83,6 @@ mod tests {
 
     #[test]
     fn roundtrip_1() {
-
         #[derive(Debug, Serialize, Deserialize, PartialEq)]
         struct Row {
             a: i16,
@@ -94,9 +91,21 @@ mod tests {
         }
 
         let orig = vec![
-            Row{a: 0, b: 0.0, c: String::new()},
-            Row{a: 1, b: 2.0, c: "123".to_owned()},
-            Row{a: -1726, b: 3.1415, c: "pie".to_owned()},
+            Row {
+                a: 0,
+                b: 0.0,
+                c: String::new(),
+            },
+            Row {
+                a: 1,
+                b: 2.0,
+                c: "123".to_owned(),
+            },
+            Row {
+                a: -1726,
+                b: 3.1415,
+                c: "pie".to_owned(),
+            },
         ];
 
         let arff = to_string(&orig).unwrap();
@@ -107,7 +116,6 @@ mod tests {
 
     #[test]
     fn roundtrip_2() {
-
         #[derive(Debug, Serialize, Deserialize, PartialEq)]
         struct Row {
             a: i16,
@@ -138,7 +146,6 @@ mod tests {
 
     #[test]
     fn roundtrip_3() {
-
         #[derive(Debug, Serialize, Deserialize, PartialEq)]
         enum Answer {
             Yes,
@@ -154,9 +161,18 @@ mod tests {
         }
 
         let orig = vec![
-            Row{x: -1.0, class: Answer::No},
-            Row{x: 0.0, class: Answer::Maybe},
-            Row{x: 1.0, class: Answer::Yes},
+            Row {
+                x: -1.0,
+                class: Answer::No,
+            },
+            Row {
+                x: 0.0,
+                class: Answer::Maybe,
+            },
+            Row {
+                x: 1.0,
+                class: Answer::Yes,
+            },
         ];
 
         let arff = to_string(&orig).unwrap();
@@ -167,13 +183,9 @@ mod tests {
 
     #[test]
     fn roundtrip_4() {
-
         type Row = [[i32; 2]; 2];
 
-        let orig = vec![
-            [[1, 2], [3, 4]],
-            [[1, 3], [2, 4]],
-        ];
+        let orig = vec![[[1, 2], [3, 4]], [[1, 3], [2, 4]]];
 
         let arff = to_string(&orig).unwrap();
         let deser: Vec<Row> = from_str(&arff).unwrap();
@@ -183,13 +195,9 @@ mod tests {
 
     #[test]
     fn roundtrip_5() {
-
         type Row = (i32, [u8; 2], i32);
 
-        let orig = vec![
-            (1, [2, 3], 4),
-            (5, [6, 7], 8),
-        ];
+        let orig = vec![(1, [2, 3], 4), (5, [6, 7], 8)];
 
         let arff = to_string(&orig).unwrap();
         let deser: Vec<Row> = from_str(&arff).unwrap();
@@ -206,20 +214,56 @@ mod tests {
         let d_vec: Vec<Row> = d_array.to_vec();
         let d_slice: &[Row] = d_array.as_ref();
 
-        assert_eq!(to_string(&d_tuple).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "unnamed_data"));
-        assert_eq!(to_string(&d_array).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "unnamed_data"));
-        assert_eq!(to_string(&d_vec).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "unnamed_data"));
-        assert_eq!(to_string(&d_slice).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "unnamed_data"));
+        assert_eq!(
+            to_string(&d_tuple).unwrap(),
+            format!(
+                "@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n",
+                "unnamed_data"
+            )
+        );
+        assert_eq!(
+            to_string(&d_array).unwrap(),
+            format!(
+                "@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n",
+                "unnamed_data"
+            )
+        );
+        assert_eq!(
+            to_string(&d_vec).unwrap(),
+            format!(
+                "@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n",
+                "unnamed_data"
+            )
+        );
+        assert_eq!(
+            to_string(&d_slice).unwrap(),
+            format!(
+                "@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n",
+                "unnamed_data"
+            )
+        );
 
         #[derive(Serialize, Deserialize)]
         struct NewtypeStruct(Vec<Row>);
         let d_newtype_struct = NewtypeStruct(vec![[1], [2]]);
-        assert_eq!(to_string(&d_newtype_struct).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "NewtypeStruct"));
+        assert_eq!(
+            to_string(&d_newtype_struct).unwrap(),
+            format!(
+                "@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n",
+                "NewtypeStruct"
+            )
+        );
 
         #[derive(Serialize, Deserialize)]
         struct TupleStruct(Row, Row);
         let d_tuple_struct = TupleStruct([1], [2]);
-        assert_eq!(to_string(&d_tuple_struct).unwrap(), format!("@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n", "TupleStruct"));
+        assert_eq!(
+            to_string(&d_tuple_struct).unwrap(),
+            format!(
+                "@RELATION {}\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n2\n",
+                "TupleStruct"
+            )
+        );
     }
 
     #[test]
@@ -230,7 +274,7 @@ mod tests {
             y: i32,
         };
 
-        let d_struct = [StructRow{x: 1.1, y: 2}];
+        let d_struct = [StructRow { x: 1.1, y: 2 }];
         let d_tuple: [(f64, i32); 1] = [(1.1, 2)];
         let d_array: [[f64; 2]; 1] = [[1.1, 2.0]];
 

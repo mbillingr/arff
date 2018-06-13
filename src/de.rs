@@ -8,18 +8,17 @@
 
 //! Deserialize ARFF formatted text to a Rust data structure.
 
-use serde::de::{self, Deserialize, DeserializeOwned, DeserializeSeed, Visitor, SeqAccess,
-                MapAccess, IntoDeserializer};
+use serde::de::{self, Deserialize, DeserializeOwned, DeserializeSeed, IntoDeserializer, MapAccess,
+                SeqAccess, Visitor};
 
 use super::arff_array::Array;
 use super::error::{Error, Result};
 use super::parser::*;
 
-
 /// Deserialize an instance of type `T` from an ARFF formatted string.
 pub fn from_str<'a, T>(s: &'a str) -> Result<T>
-    where
-        T: Deserialize<'a>,
+where
+    T: Deserialize<'a>,
 {
     let mut deserializer = Deserializer::from_str(s)?;
 
@@ -33,8 +32,8 @@ pub fn from_str<'a, T>(s: &'a str) -> Result<T>
 /// Deserialize an instance of sequence type `T` from an ARFF formatted string, to obtain a flat
 /// representation of the data.
 pub fn flat_from_str<'a, T>(s: &'a str) -> Result<T>
-    where
-        T: Deserialize<'a>,
+where
+    T: Deserialize<'a>,
 {
     let mut deserializer = FlatDeserializer::from_str(s)?;
 
@@ -48,8 +47,8 @@ pub fn flat_from_str<'a, T>(s: &'a str) -> Result<T>
 /// Deserialize an instance of `ArffArray<T>` from an ARFF formatted string, to obtain a flat
 /// representation of the data with column meta information.
 pub fn array_from_str<T>(s: &str) -> Result<Array<T>>
-    where
-        T: DeserializeOwned,
+where
+    T: DeserializeOwned,
 {
     let mut deserializer = FlatDeserializer::from_str(s)?;
 
@@ -71,10 +70,7 @@ impl<'de> Deserializer<'de> {
         let mut parser = Parser::new(input);
         let header = parser.parse_header()?;
 
-        Ok(Deserializer {
-            parser,
-            header,
-        })
+        Ok(Deserializer { parser, header })
     }
 }
 
@@ -82,210 +78,224 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Error;
 
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
-        where V:
-        Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
     fn deserialize_bool<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_i8<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_i16<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_i32<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_i64<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_u8<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_u16<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_u32<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_u64<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_f32<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_f64<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_str<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_string<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_unit_struct<V>(self, _name: &'static str, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_newtype_struct(self)
     }
 
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let value = visitor.visit_seq(DataRows::new(self))?;
         Ok(value)
     }
 
     fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         self.deserialize_seq(visitor)
     }
 
-    fn deserialize_tuple_struct<V>(self, _name: &'static str, _len: usize, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    fn deserialize_tuple_struct<V>(
+        self,
+        _name: &'static str,
+        _len: usize,
+        visitor: V,
+    ) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
     {
         self.deserialize_seq(visitor)
     }
 
     fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
-    fn deserialize_struct<V>(self, _name: &'static str, _fields: &'static [&'static str], _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    fn deserialize_struct<V>(
+        self,
+        _name: &'static str,
+        _fields: &'static [&'static str],
+        _visitor: V,
+    ) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
-    fn deserialize_enum<V>(self, _name: &'static str, _variants: &'static [&'static str], _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    fn deserialize_enum<V>(
+        self,
+        _name: &'static str,
+        _variants: &'static [&'static str],
+        _visitor: V,
+    ) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_identifier<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         panic!("We should not be here... this must be a bug!")
     }
 
     fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 }
-
 
 /// Deserialize an ARFF data row into a Rust data structure.
 struct RowDeserializer<'de: 'a, 'a> {
@@ -308,127 +318,127 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
     type Error = Error;
 
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_bool(self.parser.parse_bool()?)
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_i8(self.parser.parse_i8()?)
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_i16(self.parser.parse_i16()?)
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_i32(self.parser.parse_i32()?)
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_i64(self.parser.parse_i64()?)
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_u8(self.parser.parse_u8()?)
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_u16(self.parser.parse_u16()?)
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_u32(self.parser.parse_u32()?)
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_u64(self.parser.parse_u64()?)
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_f32(self.parser.parse_float()? as f32)
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_f64(self.parser.parse_float()?)
     }
 
     fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_str(&self.parser.parse_string()?)
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         self.deserialize_str(visitor)
     }
 
     fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
     fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         if self.parser.parse_is_missing() {
             visitor.visit_none()
@@ -438,83 +448,97 @@ impl<'de, 'a, 'b> de::Deserializer<'de> for &'b mut RowDeserializer<'de, 'a> {
     }
 
     fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
     fn deserialize_unit_struct<V>(self, _name: &'static str, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
     fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_newtype_struct(self)
     }
 
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_seq(DataCols::new(self))
     }
 
     fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_seq(DataColsTuple::new(len, self))
     }
 
-    fn deserialize_tuple_struct<V>(self, _name: &'static str, len: usize, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    fn deserialize_tuple_struct<V>(
+        self,
+        _name: &'static str,
+        len: usize,
+        visitor: V,
+    ) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
     {
         self.deserialize_tuple(len, visitor)
     }
 
     fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
-    fn deserialize_struct<V>(self, _name: &'static str, _fields: &'static [&'static str], visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    fn deserialize_struct<V>(
+        self,
+        _name: &'static str,
+        _fields: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_map(DataCols::new(self))
     }
 
-    fn deserialize_enum<V>(self, _name: &'static str, _variants: &'static [&'static str], visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    fn deserialize_enum<V>(
+        self,
+        _name: &'static str,
+        _variants: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_enum(self.parser.parse_string()?.into_deserializer())
     }
 
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_str(&self.header.attrs[self.current_column].name)
     }
 
     fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 }
-
 
 struct DataRows<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
@@ -530,13 +554,13 @@ impl<'de, 'a> SeqAccess<'de> for DataRows<'a, 'de> {
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-        where
-            T: DeserializeSeed<'de>,
+    where
+        T: DeserializeSeed<'de>,
     {
         self.de.parser.skip_empty();
 
         if self.de.parser.is_eof() {
-            return Ok(None)
+            return Ok(None);
         }
 
         let value = {
@@ -562,8 +586,8 @@ impl<'a, 'b, 'de> MapAccess<'de> for DataCols<'a, 'b, 'de> {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
-        where
-            K: DeserializeSeed<'de>,
+    where
+        K: DeserializeSeed<'de>,
     {
         if self.de.current_column >= self.de.header.attrs.len() {
             Ok(None)
@@ -573,8 +597,8 @@ impl<'a, 'b, 'de> MapAccess<'de> for DataCols<'a, 'b, 'de> {
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
-        where
-            V: DeserializeSeed<'de>,
+    where
+        V: DeserializeSeed<'de>,
     {
         let value = seed.deserialize(&mut *self.de)?;
         self.de.current_column += 1;
@@ -589,11 +613,11 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataCols<'a, 'b, 'de> {
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-        where
-            T: DeserializeSeed<'de>,
+    where
+        T: DeserializeSeed<'de>,
     {
         if self.de.parser.check_row_delimiter() {
-            return Ok(None)
+            return Ok(None);
         }
 
         let value = seed.deserialize(&mut *self.de)?;
@@ -623,11 +647,11 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataColsTuple<'a, 'b, 'de> {
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-        where
-            T: DeserializeSeed<'de>,
+    where
+        T: DeserializeSeed<'de>,
     {
         if self.de.parser.check_row_delimiter() {
-            return Ok(None)
+            return Ok(None);
         }
 
         let value = seed.deserialize(&mut *self.de)?;
@@ -641,8 +665,6 @@ impl<'de, 'a, 'b> SeqAccess<'de> for DataColsTuple<'a, 'b, 'de> {
         Ok(Some(value))
     }
 }
-
-
 
 /// Deserialize an ARFF data set into a flat Rust sequence.
 pub struct FlatDeserializer<'de> {
@@ -668,22 +690,22 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     type Error = Error;
 
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
-        where V:
-        Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_bool(self.parser.parse_bool()?)
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let pos = self.parser.pos();
         match self.header.attrs[self.current_col].dtype {
@@ -692,7 +714,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
                 let name = self.parser.parse_string()?;
                 match names.iter().position(|n| n == &name) {
                     Some(idx) => visitor.visit_i8(idx as i8),
-                    None => Err(Error::WrongNominalValue(pos, name))
+                    None => Err(Error::WrongNominalValue(pos, name)),
                 }
             }
             DType::String => Err(Error::UnsupportedColumnType(pos, "String".to_owned())),
@@ -700,8 +722,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let pos = self.parser.pos();
         match self.header.attrs[self.current_col].dtype {
@@ -710,7 +732,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
                 let name = self.parser.parse_string()?;
                 match names.iter().position(|n| n == &name) {
                     Some(idx) => visitor.visit_i16(idx as i16),
-                    None => Err(Error::WrongNominalValue(pos, name))
+                    None => Err(Error::WrongNominalValue(pos, name)),
                 }
             }
             DType::String => Err(Error::UnsupportedColumnType(pos, "String".to_owned())),
@@ -718,8 +740,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let pos = self.parser.pos();
         match self.header.attrs[self.current_col].dtype {
@@ -728,7 +750,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
                 let name = self.parser.parse_string()?;
                 match names.iter().position(|n| n == &name) {
                     Some(idx) => visitor.visit_i32(idx as i32),
-                    None => Err(Error::WrongNominalValue(pos, name))
+                    None => Err(Error::WrongNominalValue(pos, name)),
                 }
             }
             DType::String => Err(Error::UnsupportedColumnType(pos, "String".to_owned())),
@@ -736,8 +758,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let pos = self.parser.pos();
         match self.header.attrs[self.current_col].dtype {
@@ -746,7 +768,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
                 let name = self.parser.parse_string()?;
                 match names.iter().position(|n| n == &name) {
                     Some(idx) => visitor.visit_i64(idx as i64),
-                    None => Err(Error::WrongNominalValue(pos, name))
+                    None => Err(Error::WrongNominalValue(pos, name)),
                 }
             }
             DType::String => Err(Error::UnsupportedColumnType(pos, "String".to_owned())),
@@ -754,8 +776,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let pos = self.parser.pos();
         match self.header.attrs[self.current_col].dtype {
@@ -764,7 +786,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
                 let name = self.parser.parse_string()?;
                 match names.iter().position(|n| n == &name) {
                     Some(idx) => visitor.visit_u8(idx as u8),
-                    None => Err(Error::WrongNominalValue(pos, name))
+                    None => Err(Error::WrongNominalValue(pos, name)),
                 }
             }
             DType::String => Err(Error::UnsupportedColumnType(pos, "String".to_owned())),
@@ -772,8 +794,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let pos = self.parser.pos();
         match self.header.attrs[self.current_col].dtype {
@@ -782,7 +804,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
                 let name = self.parser.parse_string()?;
                 match names.iter().position(|n| n == &name) {
                     Some(idx) => visitor.visit_u16(idx as u16),
-                    None => Err(Error::WrongNominalValue(pos, name))
+                    None => Err(Error::WrongNominalValue(pos, name)),
                 }
             }
             DType::String => Err(Error::UnsupportedColumnType(pos, "String".to_owned())),
@@ -790,8 +812,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let pos = self.parser.pos();
         match self.header.attrs[self.current_col].dtype {
@@ -800,7 +822,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
                 let name = self.parser.parse_string()?;
                 match names.iter().position(|n| n == &name) {
                     Some(idx) => visitor.visit_u32(idx as u32),
-                    None => Err(Error::WrongNominalValue(pos, name))
+                    None => Err(Error::WrongNominalValue(pos, name)),
                 }
             }
             DType::String => Err(Error::UnsupportedColumnType(pos, "String".to_owned())),
@@ -808,8 +830,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let pos = self.parser.pos();
         match self.header.attrs[self.current_col].dtype {
@@ -818,7 +840,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
                 let name = self.parser.parse_string()?;
                 match names.iter().position(|n| n == &name) {
                     Some(idx) => visitor.visit_u64(idx as u64),
-                    None => Err(Error::WrongNominalValue(pos, name))
+                    None => Err(Error::WrongNominalValue(pos, name)),
                 }
             }
             DType::String => Err(Error::UnsupportedColumnType(pos, "String".to_owned())),
@@ -826,8 +848,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let pos = self.parser.pos();
         match self.header.attrs[self.current_col].dtype {
@@ -836,7 +858,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
                 let name = self.parser.parse_string()?;
                 match names.iter().position(|n| n == &name) {
                     Some(idx) => visitor.visit_f32(idx as f32),
-                    None => Err(Error::WrongNominalValue(pos, name))
+                    None => Err(Error::WrongNominalValue(pos, name)),
                 }
             }
             DType::String => Err(Error::UnsupportedColumnType(pos, "String".to_owned())),
@@ -844,8 +866,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         let pos = self.parser.pos();
         match self.header.attrs[self.current_col].dtype {
@@ -854,7 +876,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
                 let name = self.parser.parse_string()?;
                 match names.iter().position(|n| n == &name) {
                     Some(idx) => visitor.visit_f64(idx as f64),
-                    None => Err(Error::WrongNominalValue(pos, name))
+                    None => Err(Error::WrongNominalValue(pos, name)),
                 }
             }
             DType::String => Err(Error::UnsupportedColumnType(pos, "String".to_owned())),
@@ -862,120 +884,135 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut FlatDeserializer<'de> {
     }
 
     fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_str(&self.parser.parse_string()?)
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         self.deserialize_str(visitor)
     }
 
     fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_unit_struct<V>(self, _name: &'static str, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_newtype_struct(self)
     }
 
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_seq(FlatValues::new(self))
     }
 
     fn deserialize_tuple<V>(self, _len: usize, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
-    fn deserialize_tuple_struct<V>(self, _name: &'static str, _len: usize, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    fn deserialize_tuple_struct<V>(
+        self,
+        _name: &'static str,
+        _len: usize,
+        _visitor: V,
+    ) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
 
     fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
-    fn deserialize_struct<V>(self, _name: &'static str, _fields: &'static [&'static str], _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    fn deserialize_struct<V>(
+        self,
+        _name: &'static str,
+        _fields: &'static [&'static str],
+        _visitor: V,
+    ) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
-    fn deserialize_enum<V>(self, _name: &'static str, _variants: &'static [&'static str], _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    fn deserialize_enum<V>(
+        self,
+        _name: &'static str,
+        _variants: &'static [&'static str],
+        _visitor: V,
+    ) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
     {
         Err(Error::ExpectedSequenceType)
     }
 
     fn deserialize_identifier<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         panic!("We should not be here... this must be a bug!")
     }
 
     fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
@@ -995,11 +1032,11 @@ impl<'de, 'a> SeqAccess<'de> for FlatValues<'a, 'de> {
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-        where
-            T: DeserializeSeed<'de>,
+    where
+        T: DeserializeSeed<'de>,
     {
         if self.de.parser.is_eof() {
-            return Ok(None)
+            return Ok(None);
         }
 
         let value = seed.deserialize(&mut *self.de)?;
@@ -1010,7 +1047,6 @@ impl<'de, 'a> SeqAccess<'de> for FlatValues<'a, 'de> {
         Ok(Some(value))
     }
 }
-
 
 #[test]
 fn test_struct_data() {
@@ -1063,15 +1099,45 @@ fn test_struct_data() {
 ";
 
     let res: Data = from_str(input).unwrap();
-    assert_eq!(res, Data(vec![
-        Row {a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, g: 0, h: 0, i: 0.0, j: 0.0, k: "".to_owned(), l: false, m: Color::Red},
-        Row {a: 1, b: 2, c: 3, d: 4, e: -4, f: -3, g: -2, h: -1, i: 1.0/3.0, j: 2.0/3.0, k: "abc".to_owned(), l: true, m: Color::Blue},
-    ]));
+    assert_eq!(
+        res,
+        Data(vec![
+            Row {
+                a: 0,
+                b: 0,
+                c: 0,
+                d: 0,
+                e: 0,
+                f: 0,
+                g: 0,
+                h: 0,
+                i: 0.0,
+                j: 0.0,
+                k: "".to_owned(),
+                l: false,
+                m: Color::Red,
+            },
+            Row {
+                a: 1,
+                b: 2,
+                c: 3,
+                d: 4,
+                e: -4,
+                f: -3,
+                g: -2,
+                h: -1,
+                i: 1.0 / 3.0,
+                j: 2.0 / 3.0,
+                k: "abc".to_owned(),
+                l: true,
+                m: Color::Blue,
+            },
+        ])
+    );
 }
 
 #[test]
 fn test_primitive() {
-
     let input = "@RELATION Data
 
 @ATTRIBUTE a NUMERIC
@@ -1091,13 +1157,14 @@ fn test_primitive() {
     struct DataSet(Vec<Data>);
 
     let res: DataSet = from_str(input).unwrap();
-    assert_eq!(res, DataSet(vec![Data{a: 42, b: 9},
-                                 Data{b: 5, a: 7}]));
+    assert_eq!(
+        res,
+        DataSet(vec![Data { a: 42, b: 9 }, Data { b: 5, a: 7 }])
+    );
 }
 
 #[test]
 fn test_2darray() {
-
     let input = "@RELATION Data
 
 @ATTRIBUTE a NUMERIC
@@ -1113,7 +1180,6 @@ fn test_2darray() {
 
 #[test]
 fn test_mixed() {
-
     let input = "@RELATION Data
 
 @ATTRIBUTE a NUMERIC
@@ -1131,7 +1197,6 @@ fn test_mixed() {
 
 #[test]
 fn test_2dtuple() {
-
     let input = "@RELATION Data
 
 @ATTRIBUTE a NUMERIC
@@ -1147,7 +1212,6 @@ fn test_2dtuple() {
 
 #[test]
 fn test_comments() {
-
     let input = "
 % This is a comment
 % Who put an e@ma.il here?
@@ -1169,33 +1233,68 @@ fn test_comments() {
 
 #[test]
 fn test_ranges() {
-    use std::{i64, u64};
     use parser::TextPos;
+    use std::{i64, u64};
     assert_eq!(from_str("@RELATION x @DATA\n 0, 255"), Ok([[0u8, 255]]));
-    assert_eq!(from_str::<[[u8;1];1]>("@RELATION x @DATA\n  -1"), Err(Error::ExpectedUnsignedValue(TextPos::new(2, 3))));
-    assert_eq!(from_str::<[[u8;1];1]>("@RELATION x @DATA\n 256"), Err(Error::NumericRange(TextPos::new(2, 2), 0, 255)));
+    assert_eq!(
+        from_str::<[[u8; 1]; 1]>("@RELATION x @DATA\n  -1"),
+        Err(Error::ExpectedUnsignedValue(TextPos::new(2, 3)))
+    );
+    assert_eq!(
+        from_str::<[[u8; 1]; 1]>("@RELATION x @DATA\n 256"),
+        Err(Error::NumericRange(TextPos::new(2, 2), 0, 255))
+    );
 
-    assert_eq!(from_str("@RELATION x @DATA\n -128, 127"), Ok([[-128i8, 127]]));
-    assert_eq!(from_str::<[[i8;1];1]>("@RELATION x @DATA\n -129"), Err(Error::NumericRange(TextPos::new(2, 2), -128, 127)));
-    assert_eq!(from_str::<[[i8;1];1]>("@RELATION x @DATA\n  128"), Err(Error::NumericRange(TextPos::new(2, 3), -128, 127)));
+    assert_eq!(
+        from_str("@RELATION x @DATA\n -128, 127"),
+        Ok([[-128i8, 127]])
+    );
+    assert_eq!(
+        from_str::<[[i8; 1]; 1]>("@RELATION x @DATA\n -129"),
+        Err(Error::NumericRange(TextPos::new(2, 2), -128, 127))
+    );
+    assert_eq!(
+        from_str::<[[i8; 1]; 1]>("@RELATION x @DATA\n  128"),
+        Err(Error::NumericRange(TextPos::new(2, 3), -128, 127))
+    );
 
-    assert_eq!(from_str("@RELATION x @DATA\n -9223372036854775808, 9223372036854775807"), Ok([[i64::MIN, i64::MAX]]));
-    assert_eq!(from_str::<[[i64;1];1]>("@RELATION x @DATA\n -9223372036854775809"), Err(Error::NumericRange(TextPos::new(2, 2), i64::MIN, i64::MAX)));
-    assert_eq!(from_str::<[[i64;1];1]>("@RELATION x @DATA\n  9223372036854775808"), Err(Error::NumericRange(TextPos::new(2, 3), i64::MIN, i64::MAX)));
+    assert_eq!(
+        from_str("@RELATION x @DATA\n -9223372036854775808, 9223372036854775807"),
+        Ok([[i64::MIN, i64::MAX]])
+    );
+    assert_eq!(
+        from_str::<[[i64; 1]; 1]>("@RELATION x @DATA\n -9223372036854775809"),
+        Err(Error::NumericRange(TextPos::new(2, 2), i64::MIN, i64::MAX))
+    );
+    assert_eq!(
+        from_str::<[[i64; 1]; 1]>("@RELATION x @DATA\n  9223372036854775808"),
+        Err(Error::NumericRange(TextPos::new(2, 3), i64::MIN, i64::MAX))
+    );
 
-    assert_eq!(from_str("@RELATION x @DATA\n 0, 18446744073709551615"), Ok([[u64::MIN, u64::MAX]]));
-    assert_eq!(from_str::<[[u64;1];1]>("@RELATION x @DATA\n                   -1"), Err(Error::ExpectedUnsignedValue(TextPos::new(2, 20))));
-    assert_eq!(from_str::<[[u64;1];1]>("@RELATION x @DATA\n 18446744073709551616"), Err(Error::NumericOverflow(TextPos::new(2, 2))));
+    assert_eq!(
+        from_str("@RELATION x @DATA\n 0, 18446744073709551615"),
+        Ok([[u64::MIN, u64::MAX]])
+    );
+    assert_eq!(
+        from_str::<[[u64; 1]; 1]>("@RELATION x @DATA\n                   -1"),
+        Err(Error::ExpectedUnsignedValue(TextPos::new(2, 20)))
+    );
+    assert_eq!(
+        from_str::<[[u64; 1]; 1]>("@RELATION x @DATA\n 18446744073709551616"),
+        Err(Error::NumericOverflow(TextPos::new(2, 2)))
+    );
 }
 
 #[test]
 fn test_missing() {
-    assert_eq!(from_str("@RELATION x @DATA\n 1\n ?\n 3"), Ok([[Some(1)], [None], [Some(3)]]));
+    assert_eq!(
+        from_str("@RELATION x @DATA\n 1\n ?\n 3"),
+        Ok([[Some(1)], [None], [Some(3)]])
+    );
 }
 
 #[test]
 fn test_vecseq() {
-
     let input = "@RELATION Data
 
 @ATTRIBUTE a NUMERIC
@@ -1231,8 +1330,13 @@ fn test_2d_and_label() {
     type Data = Vec<DataRow>;
 
     let res: Data = from_str(input).unwrap();
-    assert_eq!(res, vec![DataRow([[1, 2], [3, 4]], "a".to_owned()),
-                         DataRow([[11, 12], [21, 22]], "b".to_owned())]);
+    assert_eq!(
+        res,
+        vec![
+            DataRow([[1, 2], [3, 4]], "a".to_owned()),
+            DataRow([[11, 12], [21, 22]], "b".to_owned()),
+        ]
+    );
 }
 
 #[test]
@@ -1275,13 +1379,12 @@ fn test_case() {
 @DaTa
 1.0";
 
-    let res: [[f32; 1];1] = from_str(input).unwrap();
+    let res: [[f32; 1]; 1] = from_str(input).unwrap();
     assert_eq!(res, [[1.0]]);
 }
 
 #[test]
 fn test_flat() {
-
     let input = "@RELATION Data
 
 @ATTRIBUTE a NUMERIC
@@ -1299,7 +1402,6 @@ fn test_flat() {
 
 #[test]
 fn test_array() {
-
     let input = "@RELATION Data
 
 @ATTRIBUTE a NUMERIC

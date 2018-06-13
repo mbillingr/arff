@@ -21,7 +21,7 @@ impl<T> Array<T> {
     pub fn new(header: Header, data: Vec<T>) -> Result<Self> {
         Ok(Array {
             columns: header.attrs,
-            data
+            data,
         })
     }
 
@@ -67,7 +67,7 @@ impl<T: Clone> Array<T> {
         let mut data = Vec::with_capacity(indices.len() * n_cols);
 
         for row in indices {
-            let col_data = &self.data[row * n_cols..(1+row) * n_cols];
+            let col_data = &self.data[row * n_cols..(1 + row) * n_cols];
             data.extend_from_slice(col_data);
         }
 
@@ -81,10 +81,7 @@ impl<T: Clone> Array<T> {
         let n_cols = self.n_cols();
         let n_rows = self.n_rows();
 
-        let columns = indices
-            .iter()
-            .map(|&i| self.columns[i].clone())
-            .collect();
+        let columns = indices.iter().map(|&i| self.columns[i].clone()).collect();
 
         let mut data = Vec::with_capacity(n_rows * indices.len());
 
@@ -95,29 +92,20 @@ impl<T: Clone> Array<T> {
             }
         }
 
-        Array {
-            columns,
-            data,
-        }
+        Array { columns, data }
     }
 
     pub fn clone_cols_by_name(&self, col_names: &[&str]) -> Array<T> {
         let indices: Vec<_> = col_names
             .iter()
-            .map(|&n|
-                self.columns
-                    .iter()
-                    .position(|c| c.name == n)
-                    .unwrap()
-            )
+            .map(|&n| self.columns.iter().position(|c| c.name == n).unwrap())
             .collect();
 
         self.clone_cols(&indices)
     }
 }
 
-impl<T: Copy + ToPrimitive> Array<T>
-{
+impl<T: Copy + ToPrimitive> Array<T> {
     /// Convert the numeric representation of a Nominal value at `row`/`col` into its
     /// corresponding name. Returns None if the value is Numeric.
     pub fn str_at(&self, row: usize, col: usize) -> Option<&str> {
@@ -127,7 +115,7 @@ impl<T: Copy + ToPrimitive> Array<T>
                 let value: usize = (self.at(row, col)).to_usize().unwrap();
                 Some(&names[value])
             }
-            DType::String => unreachable!()
+            DType::String => unreachable!(),
         }
     }
 
@@ -163,7 +151,8 @@ pub trait ArrayCastInto<T>: Sized {
 }
 
 impl<S, T> ArrayCastInto<T> for Array<S>
-    where Array<T>: ArrayCastFrom<S>
+where
+    Array<T>: ArrayCastFrom<S>,
 {
     fn cast_into(&self) -> Result<Array<T>> {
         Array::<T>::cast_from(self)
@@ -175,9 +164,10 @@ pub trait ArrayCastFrom<T>: Sized {
 }
 
 macro_rules! impl_cast {
-    ($target:ident, $func:ident) => (
+    ($target:ident, $func:ident) => {
         impl<T> ArrayCastFrom<T> for Array<$target>
-            where T: ToPrimitive
+        where
+            T: ToPrimitive,
         {
             fn cast_from(arr: &Array<T>) -> Result<Self> {
                 let columns = arr.columns.clone();
@@ -192,7 +182,7 @@ macro_rules! impl_cast {
                 })
             }
         }
-    )
+    };
 }
 
 impl_cast!(f32, to_f32);
@@ -213,7 +203,7 @@ impl_cast!(usize, to_usize);
 
 #[test]
 fn test_array() {
-    let array:  Array<f64> = Array {
+    let array: Array<f64> = Array {
         columns: vec![
             Attribute {
                 name: "a".to_owned(),
@@ -226,7 +216,7 @@ fn test_array() {
             Attribute {
                 name: "c".to_owned(),
                 dtype: DType::Nominal(vec!["maybe".to_owned(), "perhaps".to_owned()]),
-            }
+            },
         ],
         data: vec![1.0, 0.0, 1.0, 3.1, 1.0, 0.0, 9.9, 0.0, 0.0, 5.2, 1.0, 1.0],
     };

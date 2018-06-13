@@ -10,7 +10,7 @@ use std;
 use std::fmt::{self, Display};
 use std::string::FromUtf8Error;
 
-use serde::{ser, de};
+use serde::{de, ser};
 
 use parser::TextPos;
 
@@ -41,7 +41,8 @@ pub enum Error {
     WrongNominalValue(TextPos, String),
     UnsupportedColumnType(TextPos, String),
 
-    ConversionError
+    ConversionError,
+    UnexpectedMissingValue,
 }
 
 impl ser::Error for Error {
@@ -67,7 +68,7 @@ impl std::error::Error for Error {
         match *self {
             Error::Message(ref msg) => msg,
             Error::UnexpectedType => "unexpected data type",
-            Error::InconsistentType{..} => "inconsistent data type",
+            Error::InconsistentType { .. } => "inconsistent data type",
             Error::Eof => "unexpected end of input",
             Error::Expected(_, ref what) => what,
             Error::ExpectedString(_, ref what) => what,
@@ -82,7 +83,8 @@ impl std::error::Error for Error {
             Error::InvalidColumnType(_, _) => "column type not understood",
             Error::UnsupportedColumnType(_, _) => "column type not supported",
             Error::WrongNominalValue(_, _) => "wrong nominal value",
-            Error::ConversionError => "conversion error"
+            Error::ConversionError => "conversion error",
+            Error::UnexpectedMissingValue => "unexpected missing value",
         }
     }
 }

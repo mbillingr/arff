@@ -6,12 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{i16, i32, i64, u8, u16, u32, u64, f64};
 use std::collections::VecDeque;
 use std::str;
+use std::{f64, i16, i32, i64, u16, u32, u64, u8};
 
 use super::error::{Error, Result};
-
 
 pub const I16_MIN: i64 = i16::MIN as i64;
 pub const I16_MAX: i64 = i16::MAX as i64;
@@ -27,14 +26,18 @@ pub const I32_MINABS: u64 = I32_MAX as u64 + 1;
 pub const I64_MAX: u64 = i64::MAX as u64;
 pub const I64_MINABS: u64 = I64_MAX + 1;
 
-
 pub enum DynamicValue {
-    U8(u8), U16(u16), U32(u32), U64(u64),
-    I8(i8), I16(i16), I32(i32), I64(i64),
+    U8(u8),
+    U16(u16),
+    U32(u32),
+    U64(u64),
+    I8(i8),
+    I16(i16),
+    I32(i32),
+    I64(i64),
     F64(f64),
     String(String),
 }
-
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum DType {
@@ -53,7 +56,7 @@ pub struct Attribute {
 #[derive(Debug)]
 pub struct Header {
     pub name: String,
-    pub attrs: Vec<Attribute>
+    pub attrs: Vec<Attribute>,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -72,15 +75,15 @@ pub struct Parser<'a> {
     input: str::Bytes<'a>,
     current_char: u8,
     pos: TextPos,
-    buffer: VecDeque<u8>,  // reusable scratch space
+    buffer: VecDeque<u8>, // reusable scratch space
 }
 
 impl<'a> Parser<'a> {
     pub fn new(input: &'a str) -> Self {
         let mut p = Parser {
-            input:  input.bytes(),
+            input: input.bytes(),
             current_char: 0,
-            pos: TextPos {line: 1, column: 0},
+            pos: TextPos { line: 1, column: 0 },
             buffer: VecDeque::new(),
         };
         p.advance();
@@ -117,7 +120,7 @@ impl<'a> Parser<'a> {
                 b' ' => self.advance(),
                 b'\n' => self.assume_newline(),
                 b'%' => self.skip_until(b'\n'),
-                _ => return
+                _ => return,
             }
         }
     }
@@ -132,8 +135,11 @@ impl<'a> Parser<'a> {
     /// consume one expected character
     fn consume(&mut self, ch: u8) -> Result<()> {
         if self.current_char != ch {
-            return Err(Error::UnexpectedChar(self.pos, ch as char,
-                                             self.current_char as char))
+            return Err(Error::UnexpectedChar(
+                self.pos,
+                ch as char,
+                self.current_char as char,
+            ));
         }
         self.advance();
         Ok(())
@@ -207,7 +213,7 @@ impl<'a> Parser<'a> {
             self.advance();
 
             if self.is_eof() {
-                break
+                break;
             }
         }
         Ok(String::from_utf8(s)?)
@@ -239,22 +245,29 @@ impl<'a> Parser<'a> {
         let mut s = String::from_utf8(s)?;
 
         if s.starts_with('{') && s.ends_with('}') {
-            let categories = s[1..s.len()-1].split(',').map(|s| s.trim().to_owned()).collect();
+            let categories = s[1..s.len() - 1]
+                .split(',')
+                .map(|s| s.trim().to_owned())
+                .collect();
             return Ok(Attribute {
                 name,
-                dtype: DType::Nominal(categories)
-            })
+                dtype: DType::Nominal(categories),
+            });
         }
 
         s.make_ascii_uppercase();
 
         match &s[..4] {
-            "NUME" |
-            "REAL" |
-            "INTE" => Ok(Attribute {name, dtype: DType::Numeric}),
-            "STRI" => Ok(Attribute {name, dtype: DType::String}),
+            "NUME" | "REAL" | "INTE" => Ok(Attribute {
+                name,
+                dtype: DType::Numeric,
+            }),
+            "STRI" => Ok(Attribute {
+                name,
+                dtype: DType::String,
+            }),
             "DATE" => Err(Error::UnsupportedColumnType(pos, s)),
-            _ => Err(Error::InvalidColumnType(pos, s))
+            _ => Err(Error::InvalidColumnType(pos, s)),
         }
     }
 
@@ -280,10 +293,10 @@ impl<'a> Parser<'a> {
             token.make_ascii_uppercase();
 
             match token.as_ref() {
-                "@DATA" =>{
+                "@DATA" => {
                     self.ignore_comment();
                     self.consume_newline()?;
-                    return Ok(Header{name, attrs})
+                    return Ok(Header { name, attrs });
                 }
                 "@RELATION" => {
                     self.skip_spaces();
@@ -295,7 +308,7 @@ impl<'a> Parser<'a> {
                     attrs.push(self.parse_attribute()?);
                     self.ignore_comment();
                 }
-                _ => return Err(Error::Expected(pos, "`@RELATION`, `@ATTRIBUTE`, or `@DATA"))
+                _ => return Err(Error::Expected(pos, "`@RELATION`, `@ATTRIBUTE`, or `@DATA")),
             }
         }
     }
@@ -326,8 +339,7 @@ impl<'a> Parser<'a> {
     /// Are we at the end of a row?
     pub fn check_row_delimiter(&mut self) -> bool {
         match self.current_char {
-            b'\n' |
-            0 => true,
+            b'\n' | 0 => true,
             _ => false,
         }
     }
@@ -351,8 +363,13 @@ impl<'a> Parser<'a> {
                 self.advance();
                 self.skip_spaces();
                 Ok(())
-            },
-            _ => return Err(Error::Expected(self.pos, "`,`, `\t`, newline, or end of input")),
+            }
+            _ => {
+                return Err(Error::Expected(
+                    self.pos,
+                    "`,`, `\t`, newline, or end of input",
+                ))
+            }
         }
     }
 
@@ -368,7 +385,7 @@ impl<'a> Parser<'a> {
         match strval.as_ref() {
             "0" | "F" | "FALSE" | "N" | "NO" => Ok(false),
             "1" | "T" | "TRUE" | "Y" | "YES" => Ok(true),
-            _ => Err(Error::Expected(pos, "boolean value"))
+            _ => Err(Error::Expected(pos, "boolean value")),
         }
     }
 
@@ -377,7 +394,7 @@ impl<'a> Parser<'a> {
         let pos = self.pos();
 
         let mut value = match self.current_char {
-            ch @ b'0' ... b'9' => (ch as u8 - b'0') as u64,
+            ch @ b'0'...b'9' => (ch as u8 - b'0') as u64,
             b'+' => 0,
             _ => return Err(Error::ExpectedUnsignedValue(pos)),
         };
@@ -385,8 +402,9 @@ impl<'a> Parser<'a> {
         loop {
             self.advance();
             match self.current_char {
-                ch @ b'0' ... b'9' => {
-                    value = value.checked_mul(10)
+                ch @ b'0'...b'9' => {
+                    value = value
+                        .checked_mul(10)
                         .ok_or(Error::NumericOverflow(pos))?
                         .checked_add((ch - b'0') as u64)
                         .ok_or(Error::NumericOverflow(pos))?;
@@ -401,8 +419,14 @@ impl<'a> Parser<'a> {
         let pos = self.pos();
 
         let negative = match self.current_char {
-            b'-' => { self.advance(); true }
-            b'+' => { self.advance(); false }
+            b'-' => {
+                self.advance();
+                true
+            }
+            b'+' => {
+                self.advance();
+                false
+            }
             _ => false,
         };
 
@@ -423,9 +447,9 @@ impl<'a> Parser<'a> {
         let mut s = Vec::new();
         loop {
             match self.current_char {
-                ch @ b'+' | ch @ b'-' | ch @ b'.' |
-                ch @ b'e' | ch @ b'E' |
-                ch @ b'0'...b'9' => s.push(ch),
+                ch @ b'+' | ch @ b'-' | ch @ b'.' | ch @ b'e' | ch @ b'E' | ch @ b'0'...b'9' => {
+                    s.push(ch)
+                }
                 _ => break,
             }
             self.advance();
@@ -443,16 +467,16 @@ impl<'a> Parser<'a> {
         let pos = self.pos();
 
         if self.parse_is_missing() {
-            return Ok(None)
+            return Ok(None);
         }
 
         // if it is quoted, it is certainly a string
         match self.current_char {
             b'\'' | b'\"' => {
                 let s = self.parse_quoted_string()?;
-                return Ok(Some(DynamicValue::String(s)))
+                return Ok(Some(DynamicValue::String(s)));
             }
-            _ => { }
+            _ => {}
         }
 
         // try to parse as integer
@@ -476,26 +500,29 @@ impl<'a> Parser<'a> {
         let mut value = 0u64;
         loop {
             match self.current_char {
-                ch @ b'0' ... b'9' => {
-                    value = value.checked_mul(10)
+                ch @ b'0'...b'9' => {
+                    value = value
+                        .checked_mul(10)
                         .ok_or(Error::NumericOverflow(pos))?
                         .checked_add((ch - b'0') as u64)
                         .ok_or(Error::NumericOverflow(pos))?;
                 }
-                0 | b' ' | b'\t' | b'\n' | b',' => {
-                    match (negative, value) {
-                        (false, 0...255) => return Ok(Some(DynamicValue::U8(value as u8))),
-                        (true, 0...128) => return Ok(Some(DynamicValue::I8((-(value as i64)) as i8))),
-                        (false, 0...U16_MAX) => return Ok(Some(DynamicValue::U16(value as u16))),
-                        (true, 0...I16_MINABS) => return Ok(Some(DynamicValue::I16((-(value as i64)) as i16))),
-                        (false, 0...U32_MAX) => return Ok(Some(DynamicValue::U32(value as u32))),
-                        (true, 0...I32_MINABS) => return Ok(Some(DynamicValue::I32((-(value as i64)) as i32))),
-                        (false, _) => return Ok(Some(DynamicValue::U64(value))),
-                        (true, I64_MINABS) => return Ok(Some(DynamicValue::I64(i64::MIN))),
-                        (true, 0...I64_MINABS) => return Ok(Some(DynamicValue::I64(-(value as i64)))),
-                        _ => break,
+                0 | b' ' | b'\t' | b'\n' | b',' => match (negative, value) {
+                    (false, 0...255) => return Ok(Some(DynamicValue::U8(value as u8))),
+                    (true, 0...128) => return Ok(Some(DynamicValue::I8((-(value as i64)) as i8))),
+                    (false, 0...U16_MAX) => return Ok(Some(DynamicValue::U16(value as u16))),
+                    (true, 0...I16_MINABS) => {
+                        return Ok(Some(DynamicValue::I16((-(value as i64)) as i16)))
                     }
-                }
+                    (false, 0...U32_MAX) => return Ok(Some(DynamicValue::U32(value as u32))),
+                    (true, 0...I32_MINABS) => {
+                        return Ok(Some(DynamicValue::I32((-(value as i64)) as i32)))
+                    }
+                    (false, _) => return Ok(Some(DynamicValue::U64(value))),
+                    (true, I64_MINABS) => return Ok(Some(DynamicValue::I64(i64::MIN))),
+                    (true, 0...I64_MINABS) => return Ok(Some(DynamicValue::I64(-(value as i64)))),
+                    _ => break,
+                },
                 _ => break,
             }
             self.buffer.push_back(self.current_char);
@@ -509,7 +536,7 @@ impl<'a> Parser<'a> {
                 _ => {
                     self.buffer.push_back(self.current_char);
                     self.advance();
-                },
+                }
             }
         }
 
@@ -524,7 +551,7 @@ impl<'a> Parser<'a> {
 }
 
 macro_rules! impl_parse_primitive_unsigned {
-    ($name:ident, $typ:ident, $min:expr, $max:expr) => (
+    ($name:ident, $typ:ident, $min:expr, $max:expr) => {
         impl<'a> Parser<'a> {
             pub fn $name(&mut self) -> Result<$typ> {
                 let pos = self.pos();
@@ -535,7 +562,7 @@ macro_rules! impl_parse_primitive_unsigned {
                 }
             }
         }
-    )
+    };
 }
 
 impl_parse_primitive_unsigned!(parse_u8, u8, 0, 255);
@@ -543,7 +570,7 @@ impl_parse_primitive_unsigned!(parse_u16, u16, 0, U16_MAX);
 impl_parse_primitive_unsigned!(parse_u32, u32, 0, U32_MAX);
 
 macro_rules! impl_parse_primitive_signed {
-    ($name:ident, $typ:ident, $min:expr, $max:expr) => (
+    ($name:ident, $typ:ident, $min:expr, $max:expr) => {
         impl<'a> Parser<'a> {
             pub fn $name(&mut self) -> Result<$typ> {
                 let pos = self.pos();
@@ -554,13 +581,12 @@ macro_rules! impl_parse_primitive_signed {
                 }
             }
         }
-    )
+    };
 }
 
 impl_parse_primitive_signed!(parse_i8, i8, -128, 127);
 impl_parse_primitive_signed!(parse_i16, i16, I16_MIN, I16_MAX);
 impl_parse_primitive_signed!(parse_i32, i32, I32_MIN, I32_MAX);
-
 
 /// Error parsing unquoted strings that contain '0'.
 /// https://github.com/mbillingr/arff/issues/1

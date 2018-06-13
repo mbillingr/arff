@@ -1,7 +1,7 @@
-
 use error::Result;
 use parser::Parser;
 
+use super::FlatIter;
 use super::column::Column;
 use super::value::Value;
 
@@ -25,7 +25,7 @@ impl DataSet {
         DataSet {
             relation: relation.to_owned(),
             columns,
-            n_rows
+            n_rows,
         }
     }
 
@@ -51,7 +51,7 @@ impl DataSet {
             let mut cit = columns.iter_mut();
 
             match cit.next() {
-                None => {},
+                None => {}
                 Some(col) => {
                     col.parse_value(&mut parser)?;
                 }
@@ -70,7 +70,7 @@ impl DataSet {
         Ok(DataSet {
             relation: header.name,
             columns,
-            n_rows
+            n_rows,
         })
     }
 
@@ -85,17 +85,19 @@ impl DataSet {
     }
 
     /// column names
-    pub fn col_names<'a>(&'a self) -> Box<'a + Iterator<Item=&'a str>> {
+    pub fn col_names<'a>(&'a self) -> Box<'a + Iterator<Item = &'a str>> {
         let iter = self.columns.iter().map(|col| col.name());
         Box::new(iter)
     }
 
+    /// column name by index
+    pub fn col_name<'a>(&'a self, idx: usize) -> &str {
+        self.columns[idx].name()
+    }
+
     /// get data row by index
-    pub fn row<T>(&self, idx: usize) -> Vec<Value> {
-        self.columns
-            .iter()
-            .map(|c| c.item(idx))
-            .collect()
+    pub fn row(&self, idx: usize) -> Vec<Value> {
+        self.columns.iter().map(|c| c.item(idx)).collect()
     }
 
     /// get data column by index
@@ -109,7 +111,7 @@ impl DataSet {
     pub fn col_by_name(&self, col: &str) -> &Column {
         for c in &self.columns {
             if c.name() == col {
-                return c
+                return c;
             }
         }
         panic!("unknown column: {}", col);
@@ -125,5 +127,10 @@ impl DataSet {
     /// panics if there is no such column.
     pub fn item_by_name<T>(&self, row: usize, col: &str) -> Value {
         self.col_by_name(col).item(row)
+    }
+
+    /// returns an iterator over the flattened dataset in row major.
+    pub fn flat_iter(&self) -> FlatIter {
+        FlatIter::new(self)
     }
 }

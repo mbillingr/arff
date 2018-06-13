@@ -15,7 +15,6 @@ use serde::ser::{self, Serialize};
 
 use super::error::{Error, Result};
 
-
 #[derive(Debug)]
 struct Header {
     name: &'static str,
@@ -25,7 +24,7 @@ struct Header {
 
 impl Header {
     fn new() -> Self {
-         Header {
+        Header {
             name: "unnamed_data",
             attr_names: Vec::new(),
             attr_types: Vec::new(),
@@ -65,7 +64,7 @@ impl DType {
                 }
                 s += "}";
                 s
-            },
+            }
             DType::String => "STRING".to_owned(),
             //DType::Date(_) => unimplemented!(),
         }
@@ -74,8 +73,8 @@ impl DType {
 
 /// Serialize an instance of type `T` into an ARFF formatted string.
 pub fn to_string<T>(value: &T) -> Result<String>
-    where
-        T: Serialize,
+where
+    T: Serialize,
 {
     let mut serializer = Serializer::new();
     value.serialize(&mut serializer)?;
@@ -175,8 +174,8 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_some<T>(self, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize,
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -189,21 +188,32 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         unimplemented!()
     }
 
-    fn serialize_unit_variant(self, _name: &'static str, _variant_index: u32, _variant: &'static str) -> Result<()> {
+    fn serialize_unit_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+    ) -> Result<()> {
         unimplemented!()
     }
 
     fn serialize_newtype_struct<T>(self, name: &'static str, value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize,
+    where
+        T: ?Sized + Serialize,
     {
         self.header.name = name;
         value.serialize(self)
     }
 
-    fn serialize_newtype_variant<T>(self, _name: &'static str, _variant_index: u32, _variant: &'static str, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize,
+    fn serialize_newtype_variant<T>(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _value: &T,
+    ) -> Result<()>
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -216,12 +226,22 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         Ok(self)
     }
 
-    fn serialize_tuple_struct(self, name: &'static str, _len: usize) -> Result<Self::SerializeTupleStruct> {
+    fn serialize_tuple_struct(
+        self,
+        name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleStruct> {
         self.header.name = name;
         Ok(self)
     }
 
-    fn serialize_tuple_variant(self, _name: &'static str, _variant_index: u32, _variant: &'static str, _len: usize) -> Result<Self::SerializeTupleVariant> {
+    fn serialize_tuple_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleVariant> {
         unimplemented!()
     }
 
@@ -233,7 +253,13 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         Ok(self)
     }
 
-    fn serialize_struct_variant(self, _name: &'static str, _variant_index: u32, _variant: &'static str, _len: usize) -> Result<Self::SerializeStructVariant> {
+    fn serialize_struct_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStructVariant> {
         unimplemented!()
     }
 }
@@ -243,8 +269,8 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         {
             let mut ser = RowSerializer::new(self);
@@ -264,8 +290,8 @@ impl<'a> ser::SerializeTuple for &'a mut Serializer {
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         {
             let mut ser = RowSerializer::new(self);
@@ -286,8 +312,8 @@ impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         {
             let mut ser = RowSerializer::new(self);
@@ -308,8 +334,8 @@ impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -324,15 +350,15 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     type Error = Error;
 
     fn serialize_key<T>(&mut self, _key: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
 
     fn serialize_value<T>(&mut self, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -347,8 +373,8 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _key: &'static str, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -363,8 +389,8 @@ impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _key: &'static str, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -416,7 +442,10 @@ impl<'a> RowSerializer<'a> {
     }
 
     fn get_current_name(&self) -> Option<&str> {
-        self.header.attr_names.get(self.current_column).map(|s|&s[..])
+        self.header
+            .attr_names
+            .get(self.current_column)
+            .map(|s| &s[..])
     }
 
     fn set_current_name(&mut self, n: Cow<'static, str>) {
@@ -446,14 +475,19 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
 
     fn serialize_bool(self, v: bool) -> Result<()> {
         if self.depth == 0 {
-            return Err(Error::UnexpectedType)
+            return Err(Error::UnexpectedType);
         }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Nominal(["f", "t"].iter().cloned().collect())),
             Some(&DType::Nominal(_)) => {}
-            Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
+            Some(_) => {
+                return Err(Error::InconsistentType {
+                    row: self.row,
+                    column: self.current_column,
+                })
+            }
         }
-        *self.output += if v {"t"} else {"f"};
+        *self.output += if v { "t" } else { "f" };
         Ok(())
     }
 
@@ -471,12 +505,17 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
 
     fn serialize_i64(self, v: i64) -> Result<()> {
         if self.depth == 0 {
-            return Err(Error::UnexpectedType)
+            return Err(Error::UnexpectedType);
         }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
             Some(&DType::Numeric) => {}
-            Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
+            Some(_) => {
+                return Err(Error::InconsistentType {
+                    row: self.row,
+                    column: self.current_column,
+                })
+            }
         }
         *self.output += &v.to_string();
         Ok(())
@@ -496,12 +535,17 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
 
     fn serialize_u64(self, v: u64) -> Result<()> {
         if self.depth == 0 {
-            return Err(Error::UnexpectedType)
+            return Err(Error::UnexpectedType);
         }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
             Some(&DType::Numeric) => {}
-            Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
+            Some(_) => {
+                return Err(Error::InconsistentType {
+                    row: self.row,
+                    column: self.current_column,
+                })
+            }
         }
         *self.output += &v.to_string();
         Ok(())
@@ -513,12 +557,17 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
 
     fn serialize_f64(self, v: f64) -> Result<()> {
         if self.depth == 0 {
-            return Err(Error::UnexpectedType)
+            return Err(Error::UnexpectedType);
         }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::Numeric),
             Some(&DType::Numeric) => {}
-            Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
+            Some(_) => {
+                return Err(Error::InconsistentType {
+                    row: self.row,
+                    column: self.current_column,
+                })
+            }
         }
         *self.output += &v.to_string();
         Ok(())
@@ -530,12 +579,17 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
 
     fn serialize_str(self, v: &str) -> Result<()> {
         if self.depth == 0 {
-            return Err(Error::UnexpectedType)
+            return Err(Error::UnexpectedType);
         }
         match self.get_current_dtype() {
             None => self.set_current_dtype(DType::String),
             Some(&DType::String) => {}
-            Some(_) => return Err(Error::InconsistentType {row: self.row, column: self.current_column}),
+            Some(_) => {
+                return Err(Error::InconsistentType {
+                    row: self.row,
+                    column: self.current_column,
+                })
+            }
         }
         *self.output += "'";
         *self.output += v;
@@ -549,18 +603,18 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
 
     fn serialize_none(self) -> Result<()> {
         if self.depth == 0 {
-            return Err(Error::UnexpectedType)
+            return Err(Error::UnexpectedType);
         }
         *self.output += "?";
         Ok(())
     }
 
     fn serialize_some<T>(self, value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize,
+    where
+        T: ?Sized + Serialize,
     {
         if self.depth == 0 {
-            return Err(Error::UnexpectedType)
+            return Err(Error::UnexpectedType);
         }
         value.serialize(self)
     }
@@ -573,9 +627,14 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         unimplemented!()
     }
 
-    fn serialize_unit_variant(self, _name: &'static str, _variant_index: u32, variant: &'static str) -> Result<()> {
+    fn serialize_unit_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        variant: &'static str,
+    ) -> Result<()> {
         if self.depth == 0 {
-            return Err(Error::UnexpectedType)
+            return Err(Error::UnexpectedType);
         }
 
         if self.get_current_dtype().is_none() {
@@ -591,7 +650,10 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         }
 
         if err {
-            Err(Error::InconsistentType {row: self.row, column: self.current_column})
+            Err(Error::InconsistentType {
+                row: self.row,
+                column: self.current_column,
+            })
         } else {
             *self.output += variant;
             Ok(())
@@ -599,15 +661,21 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
     }
 
     fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize,
+    where
+        T: ?Sized + Serialize,
     {
         value.serialize(self)
     }
 
-    fn serialize_newtype_variant<T>(self, _name: &'static str, _variant_index: u32, _variant: &'static str, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize,
+    fn serialize_newtype_variant<T>(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _value: &T,
+    ) -> Result<()>
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -621,11 +689,21 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         Ok(self)
     }
 
-    fn serialize_tuple_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeTupleStruct> {
+    fn serialize_tuple_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleStruct> {
         unimplemented!()
     }
 
-    fn serialize_tuple_variant(self, _name: &'static str, _variant_index: u32, _variant: &'static str, _len: usize) -> Result<Self::SerializeTupleVariant> {
+    fn serialize_tuple_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleVariant> {
         unimplemented!()
     }
 
@@ -638,7 +716,13 @@ impl<'a, 'b> ser::Serializer for &'b mut RowSerializer<'a> {
         Ok(self)
     }
 
-    fn serialize_struct_variant(self, _name: &'static str, _variant_index: u32, _variant: &'static str, _len: usize) -> Result<Self::SerializeStructVariant> {
+    fn serialize_struct_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStructVariant> {
         unimplemented!()
     }
 }
@@ -648,8 +732,8 @@ impl<'a, 'b> ser::SerializeSeq for &'b mut RowSerializer<'a> {
     type Error = Error;
 
     fn serialize_element<T>(&mut self, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -664,8 +748,8 @@ impl<'a, 'b> ser::SerializeTuple for &'b mut RowSerializer<'a> {
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         if self.get_current_name().is_none() {
             let name = match self.current_key {
@@ -675,7 +759,7 @@ impl<'a, 'b> ser::SerializeTuple for &'b mut RowSerializer<'a> {
             self.set_current_name(name.into());
         }
 
-        if self.current_column > 0 && ! self.output.ends_with(", ") {
+        if self.current_column > 0 && !self.output.ends_with(", ") {
             *self.output += ", ";
         }
 
@@ -698,8 +782,8 @@ impl<'a, 'b> ser::SerializeTupleStruct for &'b mut RowSerializer<'a> {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -714,8 +798,8 @@ impl<'a, 'b> ser::SerializeTupleVariant for &'b mut RowSerializer<'a> {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -730,15 +814,15 @@ impl<'a, 'b> ser::SerializeMap for &'b mut RowSerializer<'a> {
     type Error = Error;
 
     fn serialize_key<T>(&mut self, _key: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
 
     fn serialize_value<T>(&mut self, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -753,8 +837,8 @@ impl<'a, 'b> ser::SerializeStruct for &'b mut RowSerializer<'a> {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         if self.current_column > 0 {
             *self.output += ", ";
@@ -780,8 +864,8 @@ impl<'a, 'b> ser::SerializeStructVariant for &'b mut RowSerializer<'a> {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _key: &'static str, _value: &T) -> Result<()>
-        where
-            T: ?Sized + Serialize
+    where
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -790,7 +874,6 @@ impl<'a, 'b> ser::SerializeStructVariant for &'b mut RowSerializer<'a> {
         unimplemented!()
     }
 }
-
 
 #[test]
 fn test_struct_data() {
@@ -821,8 +904,36 @@ fn test_struct_data() {
     struct Data(Vec<Row>);
 
     let test = Data(vec![
-        Row {a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, g: 0, h: 0, i: 0.0, j: 0.0, k: "", l: false, m: Color::Red},
-        Row {a: 1, b: 2, c: 3, d: 4, e: -4, f: -3, g: -2, h: -1, i: 1.0/3.0, j: 2.0/3.0, k: "abc", l: true, m: Color::Blue},
+        Row {
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+            e: 0,
+            f: 0,
+            g: 0,
+            h: 0,
+            i: 0.0,
+            j: 0.0,
+            k: "",
+            l: false,
+            m: Color::Red,
+        },
+        Row {
+            a: 1,
+            b: 2,
+            c: 3,
+            d: 4,
+            e: -4,
+            f: -3,
+            g: -2,
+            h: -1,
+            i: 1.0 / 3.0,
+            j: 2.0 / 3.0,
+            k: "abc",
+            l: true,
+            m: Color::Blue,
+        },
     ]);
 
     let expected = "@RELATION Data
@@ -853,7 +964,6 @@ fn test_struct_data() {
 
 #[test]
 fn test_primitive() {
-
     let expected = "@RELATION unnamed_data
 
 @ATTRIBUTE b NUMERIC
@@ -870,10 +980,7 @@ fn test_primitive() {
         a: u8,
     }
 
-    let data = vec![
-        Row{a: 42, b: 9},
-        Row{b: 5, a: 7}
-    ];
+    let data = vec![Row { a: 42, b: 9 }, Row { b: 5, a: 7 }];
 
     let output = to_string(&data).unwrap();
 
@@ -888,10 +995,7 @@ fn test_newtype_data() {
     #[derive(Serialize)]
     struct Data(Vec<Row>);
 
-    let test = Data(vec![
-        Row([1, 2, 3, 4, 5]),
-        Row([6, 7, 8, 9, 0]),
-    ]);
+    let test = Data(vec![Row([1, 2, 3, 4, 5]), Row([6, 7, 8, 9, 0])]);
 
     let expected = "@RELATION Data
 
@@ -913,7 +1017,6 @@ fn test_newtype_data() {
 
 #[test]
 fn test_array_data() {
-
     #[derive(Serialize)]
     struct Row {
         rgb: [u8; 3],
@@ -924,9 +1027,18 @@ fn test_array_data() {
     struct Data(Vec<Row>);
 
     let test = Data(vec![
-        Row {rgb: [255, 0, 0], name: "red".to_owned()},
-        Row {rgb: [0, 255, 0], name: "green".to_owned()},
-        Row {rgb: [0, 0, 255], name: "blue".to_owned()},
+        Row {
+            rgb: [255, 0, 0],
+            name: "red".to_owned(),
+        },
+        Row {
+            rgb: [0, 255, 0],
+            name: "green".to_owned(),
+        },
+        Row {
+            rgb: [0, 0, 255],
+            name: "blue".to_owned(),
+        },
     ]);
 
     let expected = "@RELATION Data
@@ -977,10 +1089,7 @@ fn test_mixed() {
 7, 5, 3, 2
 ";
 
-    let data = vec![
-        (42, [9, 8], 7),
-        (7, [5, 3], 2)
-    ];
+    let data = vec![(42, [9, 8], 7), (7, [5, 3], 2)];
 
     let output = to_string(&data).unwrap();
     assert_eq!(output, expected);
@@ -1006,6 +1115,8 @@ fn test_2dtuple() {
 
 #[test]
 fn test_missing() {
-    assert_eq!(to_string(&[[Some(1)], [None], [Some(3)]]).unwrap(),
-               "@RELATION unnamed_data\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n?\n3\n");
+    assert_eq!(
+        to_string(&[[Some(1)], [None], [Some(3)]]).unwrap(),
+        "@RELATION unnamed_data\n\n@ATTRIBUTE col1 NUMERIC\n\n@DATA\n1\n?\n3\n"
+    );
 }
