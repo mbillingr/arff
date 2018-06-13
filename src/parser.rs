@@ -439,14 +439,18 @@ impl<'a> Parser<'a> {
 
     /// Try to parse value in most compact representation.
     /// u8 > i8 > u16 > ... > f64 > String
-    pub fn parse_dynamic(&mut self) -> Result<DynamicValue> {
+    pub fn parse_dynamic(&mut self) -> Result<Option<DynamicValue>> {
         let pos = self.pos();
+
+        if self.parse_is_missing() {
+            return Ok(None)
+        }
 
         // if it is quoted, it is certainly a string
         match self.current_char {
             b'\'' | b'\"' => {
                 let s = self.parse_quoted_string()?;
-                return Ok(DynamicValue::String(s))
+                return Ok(Some(DynamicValue::String(s)))
             }
             _ => { }
         }
@@ -480,15 +484,15 @@ impl<'a> Parser<'a> {
                 }
                 0 | b' ' | b'\t' | b'\n' | b',' => {
                     match (negative, value) {
-                        (false, 0...255) => return Ok(DynamicValue::U8(value as u8)),
-                        (true, 0...128) => return Ok(DynamicValue::I8((-(value as i64)) as i8)),
-                        (false, 0...U16_MAX) => return Ok(DynamicValue::U16(value as u16)),
-                        (true, 0...I16_MINABS) => return Ok(DynamicValue::I16((-(value as i64)) as i16)),
-                        (false, 0...U32_MAX) => return Ok(DynamicValue::U32(value as u32)),
-                        (true, 0...I32_MINABS) => return Ok(DynamicValue::I32((-(value as i64)) as i32)),
-                        (false, _) => return Ok(DynamicValue::U64(value)),
-                        (true, I64_MINABS) => return Ok(DynamicValue::I64(i64::MIN)),
-                        (true, 0...I64_MINABS) => return Ok(DynamicValue::I64(-(value as i64))),
+                        (false, 0...255) => return Ok(Some(DynamicValue::U8(value as u8))),
+                        (true, 0...128) => return Ok(Some(DynamicValue::I8((-(value as i64)) as i8))),
+                        (false, 0...U16_MAX) => return Ok(Some(DynamicValue::U16(value as u16))),
+                        (true, 0...I16_MINABS) => return Ok(Some(DynamicValue::I16((-(value as i64)) as i16))),
+                        (false, 0...U32_MAX) => return Ok(Some(DynamicValue::U32(value as u32))),
+                        (true, 0...I32_MINABS) => return Ok(Some(DynamicValue::I32((-(value as i64)) as i32))),
+                        (false, _) => return Ok(Some(DynamicValue::U64(value))),
+                        (true, I64_MINABS) => return Ok(Some(DynamicValue::I64(i64::MIN))),
+                        (true, 0...I64_MINABS) => return Ok(Some(DynamicValue::I64(-(value as i64)))),
                         _ => break,
                     }
                 }
@@ -511,9 +515,10 @@ impl<'a> Parser<'a> {
 
         let s = String::from_utf8(self.buffer.drain(..).collect()).unwrap();
 
+        // either float or string
         match s.parse::<f64>() {
-            Ok(value) => Ok(DynamicValue::F64(value)),
-            Err(_) => Ok(DynamicValue::String(s)),
+            Ok(value) => Ok(Some(DynamicValue::F64(value))),
+            Err(_) => Ok(Some(DynamicValue::String(s))),
         }
     }
 }
