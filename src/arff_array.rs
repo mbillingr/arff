@@ -19,10 +19,7 @@ pub struct Array<T> {
 
 impl<T> Array<T> {
     pub fn new(columns: Vec<Attribute>, data: Vec<T>) -> Self {
-        Array {
-            columns,
-            data,
-        }
+        Array { columns, data }
     }
 
     pub fn empty() -> Self {

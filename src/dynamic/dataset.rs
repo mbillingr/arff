@@ -188,7 +188,8 @@ impl DataSet {
     }
 
     pub fn to_array<T>(&self) -> Result<Array<T>>
-        where T: CastValue
+    where
+        T: CastValue,
     {
         let mut columns = Vec::with_capacity(self.columns.len());
         let mut data = Vec::with_capacity(self.columns.len());
@@ -196,19 +197,19 @@ impl DataSet {
         for col in self.columns.iter() {
             let name = col.name().to_owned();
             let dtype = match col.data().get_type() {
-                ColumnType::U8 |
-                ColumnType::U16 |
-                ColumnType::U32 |
-                ColumnType::U64 |
-                ColumnType::I8 |
-                ColumnType::I16 |
-                ColumnType::I32 |
-                ColumnType::I64 |
-                ColumnType::F64 => DType::Numeric,
+                ColumnType::U8
+                | ColumnType::U16
+                | ColumnType::U32
+                | ColumnType::U64
+                | ColumnType::I8
+                | ColumnType::I16
+                | ColumnType::I32
+                | ColumnType::I64
+                | ColumnType::F64 => DType::Numeric,
                 ColumnType::String => DType::String,
-                ColumnType::Nominal {categories} => DType::Nominal(categories)
+                ColumnType::Nominal { categories } => DType::Nominal(categories),
             };
-            columns.push(Attribute{name, dtype});
+            columns.push(Attribute { name, dtype });
         }
 
         for i in (0..self.n_rows()) {

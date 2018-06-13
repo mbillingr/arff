@@ -1,7 +1,7 @@
 use std::iter;
 
-use serde::de::{self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess,
-                SeqAccess, Visitor};
+use serde::de::{self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess,
+                Visitor};
 
 use error::{Error, Result};
 
@@ -277,14 +277,14 @@ impl<'de> SeqAccess<'de> for Deserializer<'de> {
         T: DeserializeSeed<'de>,
     {
         if self.input.peek().is_none() {
-            return Ok(None)
+            return Ok(None);
         }
 
         seed.deserialize(self).map(Some)
     }
 }
 
-struct StructAcess<'a, 'de:'a> {
+struct StructAcess<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
     n_fields: usize,
 }
@@ -297,7 +297,7 @@ impl<'a, 'de> MapAccess<'de> for StructAcess<'a, 'de> {
         K: DeserializeSeed<'de>,
     {
         if self.n_fields == 0 || self.de.input.peek().is_none() {
-            return Ok(None)
+            return Ok(None);
         }
         self.n_fields -= 1;
         seed.deserialize(&mut *self.de).map(Some)
@@ -347,11 +347,15 @@ fn simple() {
         ],
     );
 
-
     let x: Vec<(u8, Option<f64>, String, String)> = from_dataset(&dset).unwrap();
 
-    assert_eq!(x, vec![(1, Some(2.0), "three".to_owned(), "blue".to_owned()),
-                       (4, None, "7".to_owned(), "red".to_owned())]);
+    assert_eq!(
+        x,
+        vec![
+            (1, Some(2.0), "three".to_owned(), "blue".to_owned()),
+            (4, None, "7".to_owned(), "red".to_owned()),
+        ]
+    );
 }
 
 #[test]
@@ -406,8 +410,21 @@ fn named() {
 
     println!("{:?}", x);
 
-    assert_eq!(x, vec![
-        Row { int: 1, float: Some(2.0), text: "three".to_owned(), color: Color::Blue },
-        Row { int: 4, float: None, text: "7".to_owned(), color: Color::Red },
-    ]);
+    assert_eq!(
+        x,
+        vec![
+            Row {
+                int: 1,
+                float: Some(2.0),
+                text: "three".to_owned(),
+                color: Color::Blue,
+            },
+            Row {
+                int: 4,
+                float: None,
+                text: "7".to_owned(),
+                color: Color::Red,
+            },
+        ]
+    );
 }

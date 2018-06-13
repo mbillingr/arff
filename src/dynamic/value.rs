@@ -172,11 +172,11 @@ impl<'a> Value<'a> {
     }
 
     pub fn as_u8(&self) -> Result<u8> {
-       match *self {
+        match *self {
             Value::Missing => Err(Error::UnexpectedMissingValue),
             Value::U8(x) => Ok(x),
             Value::Nominal(i @ 0...255, _) => Ok(i as u8),
-            _ => Err(Error::UnexpectedType)
+            _ => Err(Error::UnexpectedType),
         }
     }
 
@@ -186,7 +186,7 @@ impl<'a> Value<'a> {
             Value::U8(x) => Ok(x as u16),
             Value::U16(x) => Ok(x),
             Value::Nominal(i @ 0...65535, _) => Ok(i as u16),
-            _ => Err(Error::ConversionError)
+            _ => Err(Error::ConversionError),
         }
     }
 
@@ -197,7 +197,7 @@ impl<'a> Value<'a> {
             Value::U16(x) => Ok(x as u32),
             Value::U32(x) => Ok(x),
             Value::Nominal(i @ 0...4294967295, _) => Ok(i as u32),
-            _ =>  Err(Error::ConversionError)
+            _ => Err(Error::ConversionError),
         }
     }
 
@@ -209,7 +209,7 @@ impl<'a> Value<'a> {
             Value::U32(x) => Ok(x as u64),
             Value::U64(x) => Ok(x),
             Value::Nominal(i, _) => Ok(i as u64),
-            _ => Err(Error::ConversionError)
+            _ => Err(Error::ConversionError),
         }
     }
 
@@ -218,7 +218,7 @@ impl<'a> Value<'a> {
             Value::Missing => return Err(Error::UnexpectedMissingValue),
             Value::I8(x) => Ok(x),
             Value::Nominal(i @ 0...127, _) => Ok(i as i8),
-            _ => Err(Error::ConversionError)
+            _ => Err(Error::ConversionError),
         }
     }
 
@@ -229,7 +229,7 @@ impl<'a> Value<'a> {
             Value::I8(x) => Ok(x as i16),
             Value::I16(x) => Ok(x),
             Value::Nominal(i @ 0...32767, _) => Ok(i as i16),
-            _ => Err(Error::ConversionError)
+            _ => Err(Error::ConversionError),
         }
     }
 
@@ -242,7 +242,7 @@ impl<'a> Value<'a> {
             Value::I16(x) => Ok(x as i32),
             Value::I32(x) => Ok(x),
             Value::Nominal(i @ 0...2147483647, _) => Ok(i as i32),
-            _ => Err(Error::ConversionError)
+            _ => Err(Error::ConversionError),
         }
     }
 
@@ -257,7 +257,7 @@ impl<'a> Value<'a> {
             Value::I32(x) => Ok(x as i64),
             Value::I64(x) => Ok(x),
             Value::Nominal(i @ 0...2147483647, _) => Ok(i as i64),
-            _ => Err(Error::ConversionError)
+            _ => Err(Error::ConversionError),
         }
     }
 
@@ -273,8 +273,8 @@ impl<'a> Value<'a> {
             Value::I32(x) => Ok(x as f64),
             Value::I64(x) => Ok(x as f64),
             Value::F64(x) => Ok(x),
-            Value::Nominal(i, _) =>Ok(i as f64),
-            _ => Err(Error::ConversionError)
+            Value::Nominal(i, _) => Ok(i as f64),
+            _ => Err(Error::ConversionError),
         }
     }
 }
