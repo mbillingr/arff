@@ -1,5 +1,3 @@
-use std::iter;
-
 use serde::de::{self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess,
                 Visitor};
 
@@ -19,13 +17,15 @@ where
 
 /// Deserialize from a data set
 pub struct Deserializer<'de> {
-    input: iter::Peekable<FlatIter<'de>>,
+    input: FlatIter<'de>,
+    nested_sequence_depth: u8,
 }
 
 impl<'de> Deserializer<'de> {
     pub fn from_dataset(input: &'de DataSet) -> Self {
         Deserializer {
-            input: input.flat_iter().peekable(),
+            input: input.flat_iter(),
+            nested_sequence_depth: 0,
         }
     }
 
@@ -163,7 +163,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         match self.input.peek() {
             None => return Err(Error::Eof),
-            Some(&(_, Value::Missing)) => {
+            Some((_, Value::Missing)) => {
                 self.next()?;
                 visitor.visit_none()
             }
@@ -196,7 +196,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_seq(self)
+        visitor.visit_seq(SequenceAccessor::new(self))
     }
 
     fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
@@ -257,7 +257,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        let &(name, _) = self.input.peek().unwrap();
+        let (name, _) = self.input.peek().unwrap();
         visitor.visit_str(name)
     }
 
@@ -269,18 +269,43 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 }
 
-impl<'de> SeqAccess<'de> for Deserializer<'de> {
+struct SequenceAccessor<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
+    my_row: usize,
+}
+
+impl<'a, 'de> SequenceAccessor<'a, 'de> {
+    fn new(de: &'a mut Deserializer<'de>) -> Self {
+        de.nested_sequence_depth += 1;
+        SequenceAccessor {
+            my_row: de.input.row(),
+            de,
+        }
+    }
+}
+
+impl<'a, 'de> Drop for SequenceAccessor<'a, 'de> {
+    fn drop(&mut self) {
+        self.de.nested_sequence_depth -= 1;
+    }
+}
+
+impl<'a, 'de> SeqAccess<'de> for SequenceAccessor<'a, 'de> {
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
     where
         T: DeserializeSeed<'de>,
     {
-        if self.input.peek().is_none() {
+        if self.de.nested_sequence_depth > 1 && self.de.input.row() != self.my_row {
             return Ok(None);
         }
 
-        seed.deserialize(self).map(Some)
+        if self.de.input.peek().is_none() {
+            return Ok(None);
+        }
+
+        seed.deserialize(&mut *self.de).map(Some)
     }
 }
 
@@ -408,8 +433,6 @@ fn named() {
 
     let x: Vec<Row> = from_dataset(&dset).unwrap();
 
-    println!("{:?}", x);
-
     assert_eq!(
         x,
         vec![
@@ -427,4 +450,29 @@ fn named() {
             },
         ]
     );
+}
+
+#[test]
+fn unknown_length() {
+    let dset = DataSet::new(
+        "Test data",
+        vec![
+            Column::new(
+                "int",
+                ColumnData::U8 {
+                    values: vec![Some(1), Some(4)],
+                },
+            ),
+            Column::new(
+                "float",
+                ColumnData::F64 {
+                    values: vec![Some(2.0), Some(5.0)],
+                },
+            ),
+        ],
+    );
+
+    let x: Vec<Vec<f64>> = from_dataset(&dset).unwrap();
+
+    assert_eq!(x, vec![vec![1.0, 2.0], vec![4.0, 5.0]]);
 }
