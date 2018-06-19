@@ -119,15 +119,16 @@ impl Column {
                 let pos = parser.pos();
                 if parser.parse_is_missing() {
                     values.push(None);
+                } else {
+                    let value = parser.parse_unquoted_string()?;
+                    match categories
+                        .iter()
+                        .position(|item| item == &value)
+                        {
+                            Some(i) => values.push(Some(i)),
+                            None => return Err(Error::WrongNominalValue(pos, value)),
+                        }
                 }
-                let value = parser.parse_unquoted_string()?;
-                match categories
-                    .iter()
-                    .position(|item| item == &value)
-                    {
-                        Some(i) => values.push(Some(i)),
-                        None => return Err(Error::WrongNominalValue(pos, value)),
-                    }
             }
             _ => self.push(parser.parse_dynamic()?)
             //ColumnData::Date {..} => unimplemented!(),
