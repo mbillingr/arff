@@ -8,8 +8,8 @@
 
 //! Deserialize ARFF formatted text to a Rust data structure.
 
-use serde::de::{self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess,
-                SeqAccess, Visitor};
+use serde::de::{self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess,
+                Visitor};
 
 use super::error::{Error, Result};
 use super::parser::*;
@@ -1383,4 +1383,3 @@ fn test_flat() {
     let res: Vec<u8> = flat_from_str(input).unwrap();
     assert_eq!(res, vec![42, 9, 8, 7, 7, 5, 3, 2]);
 }
-

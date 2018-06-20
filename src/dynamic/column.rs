@@ -422,17 +422,29 @@ macro_rules! def_columndata_into {
     ($name:ident, $variant:ident, $typ:ident) => (
         fn $name(self) -> Self {
             let values = match self {
-                ColumnData::U8{values} => values.into_iter().map(|x| x.map(|v| v as $typ)).collect(),
-                ColumnData::U16{values} => values.into_iter().map(|x| x.map(|v| v as $typ)).collect(),
-                ColumnData::U32{values} => values.into_iter().map(|x| x.map(|v| v as $typ)).collect(),
-                ColumnData::U64{values} => values.into_iter().map(|x| x.map(|v| v as $typ)).collect(),
-                ColumnData::I8{values} => values.into_iter().map(|x| x.map(|v| v as $typ)).collect(),
-                ColumnData::I16{values} => values.into_iter().map(|x| x.map(|v| v as $typ)).collect(),
-                ColumnData::I32{values} => values.into_iter().map(|x| x.map(|v| v as $typ)).collect(),
-                ColumnData::I64{values} => values.into_iter().map(|x| x.map(|v| v as $typ)).collect(),
-                ColumnData::F64{values} => values.into_iter().map(|x| x.map(|v| v as $typ)).collect(),
-                ColumnData::String{values} => values.into_iter().map(|x| x.map(|v| v.parse().unwrap())).collect(),
-                ColumnData::Nominal{values, ..} => values.into_iter().map(|x| x.map(|v| v as $typ)).collect(),
+                ColumnData::U8{values} => values.into_iter()
+                                                .map(|x| x.map(|v| v as $typ)).collect(),
+                ColumnData::U16{values} => values.into_iter()
+                                                 .map(|x| x.map(|v| v as $typ)).collect(),
+                ColumnData::U32{values} => values.into_iter()
+                                                 .map(|x| x.map(|v| v as $typ)).collect(),
+                ColumnData::U64{values} => values.into_iter()
+                                                 .map(|x| x.map(|v| v as $typ)).collect(),
+                ColumnData::I8{values} => values.into_iter()
+                                                 .map(|x| x.map(|v| v as $typ)).collect(),
+                ColumnData::I16{values} => values.into_iter()
+                                                 .map(|x| x.map(|v| v as $typ)).collect(),
+                ColumnData::I32{values} => values.into_iter()
+                                                 .map(|x| x.map(|v| v as $typ)).collect(),
+                ColumnData::I64{values} => values.into_iter()
+                                                 .map(|x| x.map(|v| v as $typ)).collect(),
+                ColumnData::F64{values} => values.into_iter()
+                                                 .map(|x| x.map(|v| v as $typ)).collect(),
+                ColumnData::String{values} => values.into_iter()
+                                                    .map(|x| x.map(|v| v.parse().unwrap()))
+                                                    .collect(),
+                ColumnData::Nominal{values, ..} => values.into_iter()
+                                                         .map(|x| x.map(|v| v as $typ)).collect(),
                 ColumnData::Invalid => panic!("invalid column state"),
             };
             ColumnData::$variant{values}
