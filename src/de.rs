@@ -8,10 +8,9 @@
 
 //! Deserialize ARFF formatted text to a Rust data structure.
 
-use serde::de::{self, Deserialize, DeserializeOwned, DeserializeSeed, IntoDeserializer, MapAccess,
+use serde::de::{self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess,
                 SeqAccess, Visitor};
 
-use super::arff_array::Array;
 use super::error::{Error, Result};
 use super::parser::*;
 
@@ -42,21 +41,6 @@ where
     deserializer.parser.parse_eof()?;
 
     Ok(t)
-}
-
-/// Deserialize an instance of `ArffArray<T>` from an ARFF formatted string, to obtain a flat
-/// representation of the data with column meta information.
-pub fn array_from_str<T>(s: &str) -> Result<Array<T>>
-where
-    T: DeserializeOwned,
-{
-    let mut deserializer = FlatDeserializer::from_str(s)?;
-
-    let data = Vec::<T>::deserialize(&mut deserializer)?;
-
-    deserializer.parser.parse_eof()?;
-
-    Ok(Array::new(deserializer.header.attrs, data))
 }
 
 /// Deserialize an ARFF data set into a Rust data structure.
@@ -1400,19 +1384,3 @@ fn test_flat() {
     assert_eq!(res, vec![42, 9, 8, 7, 7, 5, 3, 2]);
 }
 
-#[test]
-fn test_array() {
-    let input = "@RELATION Data
-
-@ATTRIBUTE a NUMERIC
-@ATTRIBUTE b NUMERIC
-@ATTRIBUTE c NUMERIC
-@ATTRIBUTE d {yay, nay}
-
-@DATA
-42, 9, 8, nay
-7, 5, 3, yay";
-
-    let res: Array<u8> = array_from_str(input).unwrap();
-    assert_eq!(res.raw_data(), &[42, 9, 8, 1, 7, 5, 3, 0]);
-}

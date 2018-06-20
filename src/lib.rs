@@ -64,15 +64,13 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-mod arff_array;
 mod de;
 pub mod dynamic;
 mod error;
 mod parser;
 mod ser;
 
-pub use arff_array::{Array, ArrayCastFrom, ArrayCastInto};
-pub use de::{array_from_str, flat_from_str, from_str, Deserializer};
+pub use de::{flat_from_str, from_str, Deserializer};
 pub use error::{Error, Result};
 pub use ser::{to_string, Serializer};
 

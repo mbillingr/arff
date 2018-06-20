@@ -1,12 +1,11 @@
 use std::collections::HashSet;
 
-use arff_array::Array;
 use error::Result;
-use parser::{Attribute, DType, Parser};
+use parser::Parser;
 
 use super::FlatIter;
-use super::column::{Column, ColumnType};
-use super::value::{CastValue, Value};
+use super::column::Column;
+use super::value::Value;
 
 /// A dynamically typed representation of an ARFF data set
 #[derive(Debug, Clone, PartialEq)]
@@ -186,38 +185,5 @@ impl DataSet {
 
         (a, b)
     }
-
-    pub fn to_array<T>(&self) -> Result<Array<T>>
-    where
-        T: CastValue,
-    {
-        let mut columns = Vec::with_capacity(self.columns.len());
-        let mut data = Vec::with_capacity(self.columns.len());
-
-        for col in self.columns.iter() {
-            let name = col.name().to_owned();
-            let dtype = match col.data().get_type() {
-                ColumnType::U8
-                | ColumnType::U16
-                | ColumnType::U32
-                | ColumnType::U64
-                | ColumnType::I8
-                | ColumnType::I16
-                | ColumnType::I32
-                | ColumnType::I64
-                | ColumnType::F64 => DType::Numeric,
-                ColumnType::String => DType::String,
-                ColumnType::Nominal { categories } => DType::Nominal(categories),
-            };
-            columns.push(Attribute { name, dtype });
-        }
-
-        for i in 0..self.n_rows() {
-            for col in self.columns.iter() {
-                data.push(T::from_value(col.item(i))?);
-            }
-        }
-
-        Ok(Array::new(columns, data))
-    }
 }
+
