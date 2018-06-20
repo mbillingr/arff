@@ -6,7 +6,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::collections::VecDeque;
 use std::str;
 use std::{f64, i16, i32, i64, u16, u32, u64, u8};
 
@@ -75,7 +74,7 @@ pub struct Parser<'a> {
     input: str::Bytes<'a>,
     current_char: u8,
     pos: TextPos,
-    buffer: VecDeque<u8>, // reusable scratch space
+    buffer: Vec<u8>, // reusable scratch space
 }
 
 impl<'a> Parser<'a> {
@@ -84,7 +83,7 @@ impl<'a> Parser<'a> {
             input: input.bytes(),
             current_char: 0,
             pos: TextPos { line: 1, column: 0 },
-            buffer: VecDeque::new(),
+            buffer: Vec::new(),
         };
         p.advance();
         p
@@ -485,12 +484,12 @@ impl<'a> Parser<'a> {
 
         let negative = match self.current_char {
             b'-' => {
-                self.buffer.push_back(self.current_char);
+                self.buffer.push(self.current_char);
                 self.advance();
                 true
             }
             b'+' => {
-                self.buffer.push_back(self.current_char);
+                self.buffer.push(self.current_char);
                 self.advance();
                 false
             }
@@ -525,7 +524,7 @@ impl<'a> Parser<'a> {
                 },
                 _ => break,
             }
-            self.buffer.push_back(self.current_char);
+            self.buffer.push(self.current_char);
             self.advance();
         }
 
@@ -534,7 +533,7 @@ impl<'a> Parser<'a> {
             match self.current_char {
                 0 | b' ' | b'\t' | b'\n' | b',' => break,
                 _ => {
-                    self.buffer.push_back(self.current_char);
+                    self.buffer.push(self.current_char);
                     self.advance();
                 }
             }
