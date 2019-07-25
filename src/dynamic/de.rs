@@ -1,5 +1,6 @@
-use serde::de::{self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess,
-                Visitor};
+use serde::de::{
+    self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess, Visitor,
+};
 
 use error::{Error, Result};
 
