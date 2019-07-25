@@ -3,9 +3,9 @@ use std::collections::HashSet;
 use error::Result;
 use parser::Parser;
 
-use super::FlatIter;
 use super::column::Column;
 use super::value::Value;
+use super::FlatIter;
 
 /// A dynamically typed representation of an ARFF data set
 #[derive(Debug, Clone, PartialEq)]

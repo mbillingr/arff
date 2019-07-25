@@ -142,10 +142,10 @@ impl<'a> Value<'a> {
             Value::I32(x) => Ok(x > 0),
             Value::I64(x) => Ok(x > 0),
             Value::F64(x) => Ok(x > 0.0),
-            Value::String(s) => Ok(
-                s.eq_ignore_ascii_case("true") || s.eq_ignore_ascii_case("yes")
-                    || s.eq_ignore_ascii_case("y") || s.eq_ignore_ascii_case("t"),
-            ),
+            Value::String(s) => Ok(s.eq_ignore_ascii_case("true")
+                || s.eq_ignore_ascii_case("yes")
+                || s.eq_ignore_ascii_case("y")
+                || s.eq_ignore_ascii_case("t")),
             Value::Nominal(i, s) => Ok(s[i].eq_ignore_ascii_case("true")
                 || s[i].eq_ignore_ascii_case("yes")
                 || s[i].eq_ignore_ascii_case("y")

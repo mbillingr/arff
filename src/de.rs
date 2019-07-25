@@ -8,8 +8,9 @@
 
 //! Deserialize ARFF formatted text to a Rust data structure.
 
-use serde::de::{self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess,
-                Visitor};
+use serde::de::{
+    self, Deserialize, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess, Visitor,
+};
 
 use super::error::{Error, Result};
 use super::parser::*;
