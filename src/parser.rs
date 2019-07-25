@@ -52,7 +52,7 @@ pub struct Attribute {
     pub dtype: DType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Header {
     pub name: String,
     pub attrs: Vec<Attribute>,
@@ -109,6 +109,13 @@ impl<'a> Parser<'a> {
     fn skip_spaces(&mut self) {
         while self.current_char == b' ' {
             self.advance();
+        }
+    }
+
+    /// set parser to next non-whitespace character except newlines
+    fn skip_whitespace(&mut self) {
+        while self.current_char.is_ascii_whitespace() && self.current_char != b'\n' {
+            self.advance()
         }
     }
 
@@ -229,7 +236,7 @@ impl<'a> Parser<'a> {
     /// parse name and dtype of an @ATTRIBUTE declaration
     pub fn parse_attribute(&mut self) -> Result<Attribute> {
         let name = self.parse_string()?;
-        self.skip_spaces();
+        self.skip_whitespace();
 
         let pos = self.pos;
 
@@ -298,12 +305,12 @@ impl<'a> Parser<'a> {
                     return Ok(Header { name, attrs });
                 }
                 "@RELATION" => {
-                    self.skip_spaces();
+                    self.skip_whitespace();
                     name = self.parse_string()?;
                     self.ignore_comment();
                 }
                 "@ATTRIBUTE" => {
-                    self.skip_spaces();
+                    self.skip_whitespace();
                     attrs.push(self.parse_attribute()?);
                     self.ignore_comment();
                 }
@@ -587,11 +594,46 @@ impl_parse_primitive_signed!(parse_i8, i8, -128, 127);
 impl_parse_primitive_signed!(parse_i16, i16, I16_MIN, I16_MAX);
 impl_parse_primitive_signed!(parse_i32, i32, I32_MIN, I32_MAX);
 
-/// Error parsing unquoted strings that contain '0'.
-/// https://github.com/mbillingr/arff/issues/1
-#[test]
-fn github_issue_1() {
-    let mut parser = Parser::new("abc0def");
-    assert_eq!(parser.parse_unquoted_string(), Ok("abc0def".into()));
-    assert!(parser.is_eof());
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Error parsing unquoted strings that contain '0'.
+    /// https://github.com/mbillingr/arff/issues/1
+    #[test]
+    fn github_issue_1() {
+        let mut parser = Parser::new("abc0def");
+        assert_eq!(parser.parse_unquoted_string(), Ok("abc0def".into()));
+        assert!(parser.is_eof());
+    }
+
+    /// Error loading .arff files where the header contains tabs
+    /// https://github.com/mbillingr/arff/issues/5
+    #[test]
+    fn tabs_in_attributes() {
+        let mut parser = Parser::new(
+            "
+@ATTRIBUTE pixel1	real
+@ATTRIBUTE\tpixel2\treal
+
+@DATA
+        ",
+        );
+        assert_eq!(
+            parser.parse_header(),
+            Ok(Header {
+                name: "unnamed_data".to_string(),
+                attrs: vec![
+                    Attribute {
+                        name: "pixel1".to_string(),
+                        dtype: DType::Numeric
+                    },
+                    Attribute {
+                        name: "pixel2".to_string(),
+                        dtype: DType::Numeric
+                    }
+                ]
+            })
+        )
+    }
 }
